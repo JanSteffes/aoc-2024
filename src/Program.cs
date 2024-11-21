@@ -1,10 +1,22 @@
-﻿namespace aoc_2024
+﻿using aoc_2024.Controller;
+using aoc_2024.MessageWriter;
+using aoc_2024.Runner;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace aoc_2024
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            Console.WriteLine("Hello, World!");
+            ServiceProvider serviceProvider = new ServiceCollection()
+                .AddSingleton<IMessageWriter, ConsoleMessageWriter>()
+                .AddSingleton<IRunner, ConsoleRunner>()
+                .AddSingleton<IController, ConsoleController>()
+                .BuildServiceProvider();
+
+            IController inputController = serviceProvider.GetRequiredService<IController>();
+            inputController.Run();
         }
     }
 }
