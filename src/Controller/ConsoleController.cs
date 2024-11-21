@@ -29,6 +29,8 @@ namespace aoc_2024.Controller
         {
             Console.Clear();
 
+            PrintHeader();
+
             Mode mode = SelectMode();
 
             switch (mode)
@@ -47,6 +49,26 @@ namespace aoc_2024.Controller
                 default:
                     break;
             }
+        }
+
+        private static void PrintHeader()
+        {
+            Rule rule = new("🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁\U0001f98c⛄🍪🌟")
+            {
+                Justification = Justify.Center,
+                Border = BoxBorder.None,
+            };
+
+            AnsiConsole.Write(rule);
+
+            AnsiConsole.Write(
+                new FigletText("AoC 2024")
+                .Centered()
+                .Color(Color.Red));
+
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Write(rule);
         }
 
         private void RunLastCommand()
@@ -126,9 +148,23 @@ namespace aoc_2024.Controller
 
             Part partToRun = SelectPart();
 
+            Console.Clear();
+
+            PrintHeader();
+
             WriteLastChoice(dayToRun, Mode.Run, partToRun);
 
-            this.runner.RunDay(dayToRun, partToRun);
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Status()
+                .Start("Running...", ctx =>
+                {
+                    ctx.Spinner(Spinner.Known.Star);
+                    ctx.SpinnerStyle(Style.Parse("green"));
+                    this.runner.RunDay(dayToRun, partToRun);
+                    Thread.Sleep(5000);
+                });
+
         }
 
         private void InitializeDay()
