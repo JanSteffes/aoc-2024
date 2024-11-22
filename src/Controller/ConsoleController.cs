@@ -1,4 +1,5 @@
-﻿using aoc_2024.Runner;
+﻿using aoc_2024.AocClient;
+using aoc_2024.Runner;
 using Spectre.Console;
 using System.Text;
 
@@ -18,36 +19,44 @@ namespace aoc_2024.Controller
         private ExecutionSettings lastExecutionSettings;
         private bool hasValidLastExecution;
         private readonly IRunner runner;
+        private readonly IAocClient aocClient;
 
-        public ConsoleController(IRunner runner)
+        public ConsoleController(IRunner runner, IAocClient aocClient)
         {
             this.runner = runner;
+            this.aocClient = aocClient;
             this.hasValidLastExecution = GetLastExecution();
         }
 
         public void Run()
         {
-            Console.Clear();
+            bool shouldExit = false;
 
-            PrintHeader();
-
-            Mode mode = SelectMode();
-
-            switch (mode)
+            while (!shouldExit)
             {
-                case Mode.Run:
-                    RunDay();
-                    break;
-                case Mode.Test:
-                    break;
-                case Mode.Init:
-                    InitializeDay();
-                    break;
-                case Mode.Repeat:
-                    RunLastCommand();
-                    break;
-                default:
-                    break;
+                Console.Clear();
+                PrintHeader();
+                Mode mode = SelectMode();
+
+                switch (mode)
+                {
+                    case Mode.Run:
+                        RunDay();
+                        break;
+                    case Mode.Test:
+                        break;
+                    case Mode.Init:
+                        InitializeDay();
+                        break;
+                    case Mode.Repeat:
+                        RunLastCommand();
+                        break;
+                    case Mode.Exit:
+                        shouldExit = true;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
@@ -106,13 +115,15 @@ namespace aoc_2024.Controller
         {
             string[] choices;
 
+            string[] baseChoices = [Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString(), Mode.Exit.ToString()];
+
             if (this.hasValidLastExecution)
             {
-                choices = [this.lastExecutionSettings.executionString, Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString()];
+                choices = [this.lastExecutionSettings.executionString, .. baseChoices];
             }
             else
             {
-                choices = [Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString()];
+                choices = [.. baseChoices];
             }
 
             string modeText = AnsiConsole.Prompt(
@@ -164,12 +175,39 @@ namespace aoc_2024.Controller
                     this.runner.RunDay(dayToRun, partToRun);
                     Thread.Sleep(5000);
                 });
-
         }
 
         private void InitializeDay()
         {
-            this.runner.InitializeDay(1);
+            int dayToInitialize = AnsiConsole.Prompt(
+                new TextPrompt<int>("Day: "));
+
+            Console.Clear();
+            PrintHeader();
+
+            AnsiConsole.Status()
+                .Start($"Initializing day #{dayToInitialize}...", ctx =>
+                {
+                    ctx.Spinner(Spinner.Known.Star2);
+                    AnsiConsole.MarkupLine("[blue]Getting puzzle input from AoC...[/]");
+                    ClientResponse input = this.aocClient.GetPuzzleInput(4).Result;
+                    if (input.ResponseType == ClientResponseType.Success)
+                    {
+                        AnsiConsole.MarkupLine("[green]Puzzle input fetched with success![/]");
+                        ctx.Spinner(Spinner.Known.Christmas);
+                        AnsiConsole.MarkupLine("[blue]Creating files...[/]");
+                        Thread.Sleep(3000);
+                        AnsiConsole.MarkupLine($"[green]Files created for Day #{dayToInitialize}...[/]");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[red]Error getting puzzle input:[/] \r\n: {input.Content}");
+                    }
+
+                    AnsiConsole.MarkupLine("Press any key to return to main menu");
+                });
+
+            Console.ReadKey();
         }
 
         private void PrintError(string errorMessage)
