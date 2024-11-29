@@ -26,4 +26,10 @@
         Success,
         Failure,
     }
+
+    public enum LogSeverity
+    {
+        Log,
+        Error,
+    }
 }

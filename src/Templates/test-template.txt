@@ -1,0 +1,21 @@
+TestNumber=
+1
+AnswerA=
+[Insert answer A here]
+AnswerB=
+[Insert answer B here]
+Input=
+[Insert input here]
+
+================================
+
+TestNumber=
+2
+AnswerA=
+[Insert answer A here]
+AnswerB=
+[Insert answer B here]
+Input=
+[Insert input here]
+
+================================

@@ -1,31 +1,22 @@
 ﻿using aoc_2024.AocClient;
 using aoc_2024.Runner;
 using Spectre.Console;
-using System.Text;
 
 namespace aoc_2024.Controller
 {
-    public class ConsoleController : IController
+    public class ConsoleController : IController, ILogger
     {
-        private struct ExecutionSettings
-        {
-            public Mode mode;
-            public int day;
-            public Part part;
-            public int testNumber;
-            public string executionString;
-        }
-
-        private ExecutionSettings lastExecutionSettings;
-        private bool hasValidLastExecution;
         private readonly IRunner runner;
         private readonly IAocClient aocClient;
+        private readonly SolutionManager solutionManager;
+        private readonly LastExecutionManager lastExecutionManager;
 
         public ConsoleController(IRunner runner, IAocClient aocClient)
         {
             this.runner = runner;
             this.aocClient = aocClient;
-            this.hasValidLastExecution = GetLastExecution();
+            this.solutionManager = new SolutionManager();
+            this.lastExecutionManager = new LastExecutionManager(this);
         }
 
         public void Run()
@@ -82,49 +73,44 @@ namespace aoc_2024.Controller
 
         private void RunLastCommand()
         {
-            if (!this.hasValidLastExecution)
+            if (!this.lastExecutionManager.HasValidLastExecution)
             {
-                PrintError("Invalid last execution.");
+                Log("Invalid last execution.", LogSeverity.Error);
                 return;
             }
 
-            if (this.lastExecutionSettings.mode == Mode.Run)
+            ExecutionSettings execution = this.lastExecutionManager.LastExecution;
+
+            if (execution.mode == Mode.Run)
             {
-                PrintMessage($"Running day {this.lastExecutionSettings.day} part {this.lastExecutionSettings.part}");
+                Log($"Running day {execution.day} part {execution.part}", LogSeverity.Log);
                 // RunDay(dayNumber, part);
             }
-            else if (this.lastExecutionSettings.mode == Mode.Test)
+            else if (execution.mode == Mode.Test)
             {
-                if (this.lastExecutionSettings.testNumber != 0)
+                if (execution.testNumber != 0)
                 {
-                    PrintMessage($"Running test {this.lastExecutionSettings.testNumber} for day {this.lastExecutionSettings.day} part {this.lastExecutionSettings.part}");
+                    Log($"Running test {execution.testNumber} for day {execution.day} part {execution.part}", LogSeverity.Log);
                     // TestDay(dayNumber, part, testNumber);
                 }
                 else
                 {
-                    PrintError("Invalid test number or Test not found.");
+                    Log("Invalid test number or Test not found.", LogSeverity.Error);
                 }
             }
             else
             {
-                PrintError("Invalid test mode.");
+                Log("Invalid test mode.", LogSeverity.Error);
             }
         }
 
         private Mode SelectMode()
         {
-            string[] choices;
-
             string[] baseChoices = [Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString(), Mode.Exit.ToString()];
 
-            if (this.hasValidLastExecution)
-            {
-                choices = [this.lastExecutionSettings.executionString, .. baseChoices];
-            }
-            else
-            {
-                choices = [.. baseChoices];
-            }
+            string[] choices = this.lastExecutionManager.HasValidLastExecution ?
+                [GetLastExecutionString(), .. baseChoices] :
+                [.. baseChoices];
 
             string modeText = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
@@ -154,8 +140,14 @@ namespace aoc_2024.Controller
 
         private void RunDay()
         {
-            int dayToRun = AnsiConsole.Prompt(
-                new TextPrompt<int>("Day: "));
+            int dayToRun = ChoseAvailableSolution();
+
+            if (dayToRun == 0)
+            {
+                Log("There isn't any available solution. Press any key to continue.", LogSeverity.Error);
+                Console.ReadKey();
+                return;
+            }
 
             Part partToRun = SelectPart();
 
@@ -163,7 +155,7 @@ namespace aoc_2024.Controller
 
             PrintHeader();
 
-            WriteLastChoice(dayToRun, Mode.Run, partToRun);
+            this.lastExecutionManager.WriteLastChoice(dayToRun, Mode.Run, partToRun);
 
             AnsiConsole.WriteLine();
 
@@ -182,6 +174,13 @@ namespace aoc_2024.Controller
             int dayToInitialize = AnsiConsole.Prompt(
                 new TextPrompt<int>("Day: "));
 
+            if (this.solutionManager.IsDayAlreadyInitialized(dayToInitialize))
+            {
+                Log($"Day #{dayToInitialize} already initialized. Press any key to continue.", LogSeverity.Error);
+                Console.ReadKey();
+                return;
+            }
+
             Console.Clear();
             PrintHeader();
 
@@ -190,14 +189,14 @@ namespace aoc_2024.Controller
                 {
                     ctx.Spinner(Spinner.Known.Star2);
                     AnsiConsole.MarkupLine("[blue]Getting puzzle input from AoC...[/]");
-                    ClientResponse input = this.aocClient.GetPuzzleInput(4).Result;
+                    ClientResponse input = this.aocClient.GetPuzzleInput(dayToInitialize).Result;
                     if (input.ResponseType == ClientResponseType.Success)
                     {
                         AnsiConsole.MarkupLine("[green]Puzzle input fetched with success![/]");
                         ctx.Spinner(Spinner.Known.Christmas);
                         AnsiConsole.MarkupLine("[blue]Creating files...[/]");
-                        Thread.Sleep(3000);
-                        AnsiConsole.MarkupLine($"[green]Files created for Day #{dayToInitialize}...[/]");
+                        this.solutionManager.CreateInitialFiles(dayToInitialize, input.Content);
+                        AnsiConsole.MarkupLine($"[green]Files created for Day #{dayToInitialize}[/]");
                     }
                     else
                     {
@@ -210,148 +209,55 @@ namespace aoc_2024.Controller
             Console.ReadKey();
         }
 
-        private void PrintError(string errorMessage)
+        private int ChoseAvailableSolution()
         {
-            AnsiConsole.Write(new Markup($"[bold red]Error:[/] {errorMessage}"));
+            if (this.solutionManager.AvailableSolutions.Length == 0)
+            {
+                return 0;
+            }
+
+            int choice = AnsiConsole.Prompt(
+                new SelectionPrompt<int>()
+                .Title("[bold]Select day[/]")
+                .PageSize(5)
+                .AddChoices(this.solutionManager.AvailableSolutions)
+                );
+
+            return choice;
         }
 
-        private void PrintMessage(string message)
+        public void Log(string message, LogSeverity logSeverity)
         {
-            AnsiConsole.Write(new Markup($"[bold green]Log:[/] {message}"));
-        }
-
-        private bool GetLastExecution()
-        {
-            string filePath = Path.Combine("ProgramUtils", "last-choice.txt");
-
-            if (!File.Exists(filePath))
+            switch (logSeverity)
             {
-                return false;
-            }
-
-            Dictionary<string, string>? settings = ReadSettingsFromFile(filePath);
-
-            if (settings == null)
-            {
-                PrintError("Invalid file format or missing required settings for the last execution.");
-                return false;
-            }
-
-            if (!TryParseSettings(settings))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private Dictionary<string, string>? ReadSettingsFromFile(string filePath)
-        {
-            try
-            {
-                string[] fileContent = File.ReadAllLines(filePath);
-
-                if (fileContent.Length == 0)
-                {
-                    PrintError("Empty file.");
-                    return null;
-                }
-
-                Dictionary<string, string> settings = [];
-
-                foreach (string line in fileContent)
-                {
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
-                    {
-                        continue;
-                    }
-
-                    string[] parts = line.Split('=');
-                    if (parts.Length == 2)
-                    {
-                        settings[parts[0].Trim()] = parts[1].Trim();
-                    }
-                }
-
-                return settings;
-            }
-            catch
-            {
-                return null;
+                case LogSeverity.Error:
+                    AnsiConsole.Write(new Markup($"[bold red]Error:[/] {message}"));
+                    break;
+                case LogSeverity.Log:
+                    AnsiConsole.Write(new Markup($"[bold green]Log:[/] {message}"));
+                    break;
+                default:
+                    AnsiConsole.Write(message);
+                    break;
             }
         }
 
-        private bool TryParseSettings(Dictionary<string, string> settings)
+        private string GetLastExecutionString()
         {
-            if (!settings.TryGetValue("Day", out string? dayText) ||
-                !settings.TryGetValue("Mode", out string? modeText) ||
-                !settings.TryGetValue("Part", out string? partText))
+            if (!this.lastExecutionManager.HasValidLastExecution)
             {
-                PrintError("Invalid file format or missing required settings.");
-                return false;
+                return string.Empty;
             }
 
-            if (!int.TryParse(dayText, out this.lastExecutionSettings.day))
+            ExecutionSettings execution = this.lastExecutionManager.LastExecution;
+
+            if (execution.mode == Mode.Test)
             {
-                PrintError("Invalid day number.");
-                return false;
+                return $"Run Test #{execution.testNumber}" +
+                    $" for Day #{execution.day} - Part {execution.part}";
             }
 
-            if (!Enum.TryParse(modeText, out this.lastExecutionSettings.mode) ||
-                !Enum.TryParse(partText, out this.lastExecutionSettings.part))
-            {
-                PrintError("Invalid Mode or Part value.");
-                return false;
-            }
-
-            if (this.lastExecutionSettings.mode == Mode.Test &&
-                !settings.TryGetValue("TestNumber", out string? testNumberText)
-                && !int.TryParse(testNumberText, out this.lastExecutionSettings.testNumber))
-            {
-                PrintError("Invalid test number.");
-                return false;
-            }
-
-            if (this.lastExecutionSettings.mode == Mode.Test)
-            {
-                this.lastExecutionSettings.executionString = $"Run Test #{this.lastExecutionSettings.testNumber}" +
-                    $" for Day #{this.lastExecutionSettings.day} - Part {this.lastExecutionSettings.part}";
-            }
-            else
-            {
-                this.lastExecutionSettings.executionString = $"Run Day #{this.lastExecutionSettings.day} - Part {this.lastExecutionSettings.part}";
-            }
-
-            return true;
-        }
-
-        private void WriteLastChoice(int dayNumber, Mode mode, Part part, int? testNumber = null)
-        {
-            string folderPath = Path.Combine("ProgramUtils");
-            string filePath = Path.Combine(folderPath, "last-choice.txt");
-
-            Directory.CreateDirectory(folderPath);
-
-            StringBuilder content = new();
-            content.AppendLine($"Day={dayNumber}");
-            content.AppendLine($"Mode={mode}");
-            content.AppendLine($"Part={part}");
-
-            if (testNumber.HasValue)
-            {
-                content.AppendLine($"TestNumber={testNumber.Value}");
-            }
-
-            try
-            {
-                File.WriteAllText(filePath, content.ToString());
-                PrintMessage($"Last choice saved: Day {dayNumber}, Mode {mode}, Part {part}" +
-                    (testNumber.HasValue ? $", Test {testNumber.Value}" : ""));
-            }
-            catch (Exception ex)
-            {
-                PrintError($"Failed to write last choice: {ex.Message}");
-            }
+            return $"Run Day #{execution.day} - Part {execution.part}";
         }
     }
 }

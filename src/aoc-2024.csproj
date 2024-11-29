@@ -14,16 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Inputs\" />
+    <None Update="**\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Inputs\input-01.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ProgramUtils\session-cookie.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Folder Include="Inputs\" />
+    <Folder Include="Solutions\" />
   </ItemGroup>
 
 </Project>
