@@ -1,5 +1,7 @@
 # Advent of Code 2024 Toolkit
 
+![ScreenShot](https://github.com/user-attachments/assets/59fd2185-9d84-4bd6-9cd2-bd9dce7f71a4)
+
 A .NET 9 Console Application designed to streamline your Advent of Code 2024 experience. This toolkit helps you fetch daily inputs automatically and provides a framework to solve puzzles with ease.
 
 ## Features
