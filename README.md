@@ -1,4 +1,4 @@
-# Advent of Code 2024 Toolkit
+# Advent of Code 2024
 
 ![ScreenShot](https://github.com/user-attachments/assets/59fd2185-9d84-4bd6-9cd2-bd9dce7f71a4)
 
@@ -57,38 +57,50 @@ The application will automatically fetch the input for the selected day if it is
 ## Project Structure
 
 ```plaintext
-.
-├── aoc-2024/
-│   ├── AocClient/
-│   │   ├── AocHttpClient.cs (HTTP client for Advent of Code API)
-│   │   ├── ClientResponse.cs (Handles API responses)
-│   │   └── IAocClient.cs (Interface for the HTTP client)
-│   ├── Controller/
-│   │   ├── ConsoleController.cs (Handles console inputs/outputs)
-│   │   ├── IController.cs (Interface for controllers)
-│   │   ├── ILogger.cs (Logging interface)
-│   │   ├── LastExecutionManager.cs (Tracks last execution details)
-│   │   └── SolutionManager.cs (Manages solution execution)
-│   ├── Inputs/
-│   │   └── ISolution.cs (Solution interface definition)
-│   ├── MessageWriter/
-│   │   ├── ConsoleMessageWriter.cs (Console message implementation)
-│   │   └── IMessageWriter.cs (Message writer interface)
-│   ├── ProgramUtils/
-│   │   ├── last-choice.txt (Tracks last selected solution)
-│   │   └── session-cookie.txt (Stores Advent of Code session cookie)
-│   ├── Runner/
-│   │   ├── ConsoleRunner.cs (Handles running solutions via console)
-│   │   └── IRunner.cs (Runner interface)
-│   ├── Solutions/
-│   │   ├── Solution01.cs (Solution for Day 1)
-│   │   └── Solution02.cs (Solution for Day 2)
-│   ├── Templates/
-│   │   ├── solution-template.txt (Template for new solutions)
-│   │   └── test-template.txt (Template for test cases)
-│   ├── Consts.cs (Constants used across the project)
-│   └── Program.cs (Main entry point)
-
+│   aoc-2024.csproj          # The project file defining dependencies and build settings.
+│   aoc-2024.sln             # The solution file for the project.
+│   Consts.cs                # Contains constants used throughout the application.
+│   Program.cs               # The main entry point of the application.
+│
+├───AocClient                # Handles interactions with the Advent of Code website.
+│       AocHttpClient.cs     # Implements HTTP client for fetching inputs from the API.
+│       ClientResponse.cs    # Defines structures for API responses.
+│
+├───Classes                  # Core classes for application logic and utilities.
+│       ConsoleController.cs # Manages console inputs/outputs.
+│       ConsoleLogger.cs     # Handles logging to the console.
+│       ConsoleRunner.cs     # Executes solutions via the console.
+│       ExecutionResult.cs   # Represents the results of solution execution.
+│       FileUtils.cs         # Utility methods for file management.
+│       LastExecutionManager.cs  # Tracks details about the last execution.
+│       SolutionManager.cs   # Handles loading and execution of solutions.
+│       TestCase.cs          # Represents test cases for solutions.
+│       TestManager.cs       # Manages test case execution.
+│
+├───Inputs                   # Contains input files for each day's puzzle.
+│
+├───Interfaces               # Interfaces defining key abstractions for the project.
+│       IAocClient.cs        # Interface for the HTTP client.
+│       IController.cs       # Interface for console controllers.
+│       ILastExecutionManager.cs # Interface for managing execution details.
+│       ILogger.cs           # Interface for logging implementations.
+│       IRunner.cs           # Interface for executing solutions.
+│       ISolution.cs         # Interface for puzzle solutions.
+│       ISolutionManager.cs  # Interface for managing solutions.
+│       ITestManager.cs      # Interface for managing test cases.
+│
+├───ProgramUtils             # Configuration and utility files.
+│       last-choice.txt      # Tracks the last selected solution for quick access.
+│       session-cookie.txt   # Stores the Advent of Code session cookie securely.
+│
+├───Solutions                # Folder for solutions to daily puzzles.
+│       (e.g., Solution01.cs for Day 1, Solution02.cs for Day 2, etc.)
+│
+├───Templates                # Templates for creating new solutions and test cases.
+│       solution-template.txt # Template for new solution files.
+│       test-template.txt    # Template for new test case files.
+│
+└───Tests                    # Folder for test-related files.
 ```
 
 ---
@@ -109,4 +121,12 @@ Feel free to fork the repository and submit pull requests with improvements or n
 
 ---
 
-Enjoy solving the Advent of Code puzzles! 🎄
+## License
+
+This project is licensed under the **Unlicense**. For more details, refer to the [LICENSE](./LICENSE) file in the repository.
+
+---
+
+Enjoy solving the Advent of Code 2024 puzzles! 🎄
+
+---
