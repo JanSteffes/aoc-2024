@@ -1,37 +1,38 @@
-﻿using System.Text;
+﻿using aoc_2024.Interfaces;
+using System.Text;
 
-namespace aoc_2024.Controller
+namespace aoc_2024.Classes
 {
-    public struct ExecutionSettings
-    {
-        public Mode mode;
-        public int day;
-        public Part part;
-        public int testNumber;
-    }
-
-    public class LastExecutionManager
+    public class LastExecutionManager : ILastExecutionManager
     {
         private ExecutionSettings lastExecutionSettings;
+        private bool lastExecutionEnabled;
         private readonly ILogger logger;
-        public bool HasValidLastExecution { get; private set; }
-
-        public ExecutionSettings LastExecution { get { return lastExecutionSettings; } }
 
         public LastExecutionManager(ILogger logger)
         {
-            this.HasValidLastExecution = false;
+            this.lastExecutionEnabled = false;
             this.logger = logger;
-            GetLastExecution();
+            LoadLastExecution();
         }
 
-        public void GetLastExecution()
+        public ExecutionSettings GetLastExecution()
+        {
+            return this.lastExecutionSettings;
+        }
+
+        public bool HasLastExecution()
+        {
+            return this.lastExecutionEnabled;
+        }
+
+        public void LoadLastExecution()
         {
             string filePath = Path.Combine("ProgramUtils", "last-choice.txt");
 
             if (!File.Exists(filePath))
             {
-                this.HasValidLastExecution = false;
+                this.lastExecutionEnabled = false;
                 return;
             }
 
@@ -40,16 +41,16 @@ namespace aoc_2024.Controller
             if (settings == null)
             {
                 this.logger.Log("Invalid file format or missing required settings for the last execution.", LogSeverity.Error);
-                this.HasValidLastExecution = false;
+                this.lastExecutionEnabled = false;
                 return;
             }
 
             if (!TryParseSettings(settings))
             {
-                this.HasValidLastExecution = false;
+                this.lastExecutionEnabled = false;
             }
 
-            this.HasValidLastExecution = true;
+            this.lastExecutionEnabled = true;
         }
 
         private bool TryParseSettings(Dictionary<string, string> settings)
@@ -109,14 +110,14 @@ namespace aoc_2024.Controller
                 this.logger.Log($"Last choice saved: Day {dayNumber}, Mode {mode}, Part {part}" +
                     (testNumber.HasValue ? $", Test {testNumber.Value}" : ""),
                     LogSeverity.Log);
-                GetLastExecution();
-                this.HasValidLastExecution = true;
+                LoadLastExecution();
+                this.lastExecutionEnabled = true;
             }
             catch (Exception ex)
             {
                 this.logger.Log($"Failed to write last choice: {ex.Message}",
                     LogSeverity.Log);
-                this.HasValidLastExecution = false;
+                this.lastExecutionEnabled = false;
             }
         }
 

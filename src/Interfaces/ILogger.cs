@@ -1,4 +1,4 @@
-﻿namespace aoc_2024.Controller
+﻿namespace aoc_2024.Interfaces
 {
     public interface ILogger
     {

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using aoc_2024.Interfaces;
+using System.Net;
 
 namespace aoc_2024.AocClient
 {

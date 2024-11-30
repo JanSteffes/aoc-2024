@@ -1,22 +1,25 @@
 ﻿using aoc_2024.AocClient;
-using aoc_2024.Runner;
+using aoc_2024.Interfaces;
 using Spectre.Console;
 
-namespace aoc_2024.Controller
+namespace aoc_2024.Classes
 {
-    public class ConsoleController : IController, ILogger
+    public class ConsoleController : IController
     {
         private readonly IRunner runner;
         private readonly IAocClient aocClient;
-        private readonly SolutionManager solutionManager;
-        private readonly LastExecutionManager lastExecutionManager;
+        private readonly ILogger logger;
+        private readonly ISolutionManager solutionManager;
+        private readonly ILastExecutionManager lastExecutionManager;
 
-        public ConsoleController(IRunner runner, IAocClient aocClient)
+        public ConsoleController(IRunner runner, IAocClient aocClient, ILogger logger,
+            ISolutionManager solutionManager, ILastExecutionManager lastExecutionManager)
         {
             this.runner = runner;
             this.aocClient = aocClient;
-            this.solutionManager = new SolutionManager();
-            this.lastExecutionManager = new LastExecutionManager(this);
+            this.logger = logger;
+            this.solutionManager = solutionManager;
+            this.lastExecutionManager = lastExecutionManager;
         }
 
         public void Run()
@@ -53,7 +56,7 @@ namespace aoc_2024.Controller
 
         private static void PrintHeader()
         {
-            Rule rule = new("🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁\U0001f98c⛄🍪🌟")
+            Rule rule = new("🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟🎄🎅❄️✨🎁🦌⛄🍪🌟")
             {
                 Justification = Justify.Center,
                 Border = BoxBorder.None,
@@ -73,34 +76,34 @@ namespace aoc_2024.Controller
 
         private void RunLastCommand()
         {
-            if (!this.lastExecutionManager.HasValidLastExecution)
+            if (!this.lastExecutionManager.HasLastExecution())
             {
-                Log("Invalid last execution.", LogSeverity.Error);
+                this.logger.Log("Invalid last execution.", LogSeverity.Error);
                 return;
             }
 
-            ExecutionSettings execution = this.lastExecutionManager.LastExecution;
+            ExecutionSettings execution = this.lastExecutionManager.GetLastExecution();
 
             if (execution.mode == Mode.Run)
             {
-                Log($"Running day {execution.day} part {execution.part}", LogSeverity.Log);
+                this.logger.Log($"Running day {execution.day} part {execution.part}", LogSeverity.Log);
                 // RunDay(dayNumber, part);
             }
             else if (execution.mode == Mode.Test)
             {
                 if (execution.testNumber != 0)
                 {
-                    Log($"Running test {execution.testNumber} for day {execution.day} part {execution.part}", LogSeverity.Log);
+                    this.logger.Log($"Running test {execution.testNumber} for day {execution.day} part {execution.part}", LogSeverity.Log);
                     // TestDay(dayNumber, part, testNumber);
                 }
                 else
                 {
-                    Log("Invalid test number or Test not found.", LogSeverity.Error);
+                    this.logger.Log("Invalid test number or Test not found.", LogSeverity.Error);
                 }
             }
             else
             {
-                Log("Invalid test mode.", LogSeverity.Error);
+                this.logger.Log("Invalid test mode.", LogSeverity.Error);
             }
         }
 
@@ -108,7 +111,7 @@ namespace aoc_2024.Controller
         {
             string[] baseChoices = [Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString(), Mode.Exit.ToString()];
 
-            string[] choices = this.lastExecutionManager.HasValidLastExecution ?
+            string[] choices = this.lastExecutionManager.HasLastExecution() ?
                 [GetLastExecutionString(), .. baseChoices] :
                 [.. baseChoices];
 
@@ -144,7 +147,7 @@ namespace aoc_2024.Controller
 
             if (dayToRun == 0)
             {
-                Log("There isn't any available solution. Press any key to continue.", LogSeverity.Error);
+                this.logger.Log("There isn't any available solution. Press any key to continue.", LogSeverity.Error);
                 Console.ReadKey();
                 return;
             }
@@ -164,9 +167,20 @@ namespace aoc_2024.Controller
                 {
                     ctx.Spinner(Spinner.Known.Star);
                     ctx.SpinnerStyle(Style.Parse("green"));
-                    this.runner.RunDay(dayToRun, partToRun);
+                    ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
+                    if (solution != null)
+                    {
+                        string input = this.solutionManager.ReadInputFile(dayToRun);
+                        if (!string.IsNullOrEmpty(input))
+                        {
+                            this.runner.RunDay(solution, dayToRun, partToRun, input);
+                        }
+                    }
                     Thread.Sleep(5000);
                 });
+
+            this.logger.Log("Press any key to continue", LogSeverity.Other);
+            Console.ReadKey();
         }
 
         private void InitializeDay()
@@ -176,7 +190,7 @@ namespace aoc_2024.Controller
 
             if (this.solutionManager.IsDayAlreadyInitialized(dayToInitialize))
             {
-                Log($"Day #{dayToInitialize} already initialized. Press any key to continue.", LogSeverity.Error);
+                this.logger.Log($"Day #{dayToInitialize} already initialized. Press any key to continue.", LogSeverity.Error);
                 Console.ReadKey();
                 return;
             }
@@ -211,7 +225,9 @@ namespace aoc_2024.Controller
 
         private int ChoseAvailableSolution()
         {
-            if (this.solutionManager.AvailableSolutions.Length == 0)
+            int[] availableSolutions = this.solutionManager.GetAvailableSolutions();
+
+            if (availableSolutions.Length == 0)
             {
                 return 0;
             }
@@ -220,36 +236,20 @@ namespace aoc_2024.Controller
                 new SelectionPrompt<int>()
                 .Title("[bold]Select day[/]")
                 .PageSize(5)
-                .AddChoices(this.solutionManager.AvailableSolutions)
+                .AddChoices(availableSolutions)
                 );
 
             return choice;
         }
 
-        public void Log(string message, LogSeverity logSeverity)
-        {
-            switch (logSeverity)
-            {
-                case LogSeverity.Error:
-                    AnsiConsole.Write(new Markup($"[bold red]Error:[/] {message}"));
-                    break;
-                case LogSeverity.Log:
-                    AnsiConsole.Write(new Markup($"[bold green]Log:[/] {message}"));
-                    break;
-                default:
-                    AnsiConsole.Write(message);
-                    break;
-            }
-        }
-
         private string GetLastExecutionString()
         {
-            if (!this.lastExecutionManager.HasValidLastExecution)
+            if (!this.lastExecutionManager.HasLastExecution())
             {
                 return string.Empty;
             }
 
-            ExecutionSettings execution = this.lastExecutionManager.LastExecution;
+            ExecutionSettings execution = this.lastExecutionManager.GetLastExecution();
 
             if (execution.mode == Mode.Test)
             {

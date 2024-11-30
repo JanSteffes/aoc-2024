@@ -31,5 +31,7 @@
     {
         Log,
         Error,
+        Runner,
+        Other
     }
 }
