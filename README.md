@@ -123,7 +123,7 @@ Feel free to fork the repository and submit pull requests with improvements or n
 
 ## License
 
-This project is licensed under the **Unlicense**. For more details, refer to the [LICENSE](./LICENSE) file in the repository.
+This project is licensed under the **The Unlicense**. For more details, refer to the [LICENSE](./LICENSE.txt) file in the repository.
 
 ---
 
