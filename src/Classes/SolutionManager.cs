@@ -16,6 +16,7 @@ namespace aoc_2024.Classes
         public void CreateInitialFiles(int dayToInitialize, string inputContent)
         {
             CreateSolutionFile(dayToInitialize);
+            CreateTestsFile(dayToInitialize);
             CreateInputFile(dayToInitialize, inputContent);
             this.availableSolutions = LoadAvailableSolutions();
         }
@@ -55,8 +56,6 @@ namespace aoc_2024.Classes
 
         private static int[] LoadAvailableSolutions()
         {
-            string solutionsFolder = Path.Combine("Solutions");
-
             return new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, @"..\..\..\Solutions"))
                 .GetFiles("*.cs")
                 .Select(file => int.Parse(Path.GetFileNameWithoutExtension(file.Name).Replace("Solution", "")))
@@ -66,7 +65,7 @@ namespace aoc_2024.Classes
 
         private static void CreateInputFile(int dayNumber, string inputText)
         {
-            string? basePath = Directory.GetParent(AppContext.BaseDirectory)?.Parent?.Parent?.Parent?.FullName;
+            string? basePath = FileUtils.FindProjectFolder();
 
             if (string.IsNullOrEmpty(basePath)) return;
 
@@ -80,7 +79,7 @@ namespace aoc_2024.Classes
 
         public string ReadInputFile(int dayNumber)
         {
-            string? basePath = Directory.GetParent(AppContext.BaseDirectory)?.Parent?.Parent?.Parent?.FullName;
+            string? basePath = FileUtils.FindProjectFolder();
 
             if (string.IsNullOrEmpty(basePath))
             {
@@ -102,7 +101,7 @@ namespace aoc_2024.Classes
 
         private static void CreateSolutionFile(int dayToInitialize)
         {
-            string? basePath = Directory.GetParent(AppContext.BaseDirectory)?.Parent?.Parent?.Parent?.FullName;
+            string? basePath = FileUtils.FindProjectFolder();
 
             if (string.IsNullOrEmpty(basePath)) return;
 
@@ -118,6 +117,24 @@ namespace aoc_2024.Classes
             string formatedTemplate = string.Format(templateContent, formatedDayNumber);
 
             File.WriteAllText(filePath, formatedTemplate);
+        }
+
+        private static void CreateTestsFile(int dayToInitialize)
+        {
+            string? basePath = FileUtils.FindProjectFolder();
+
+            if (string.IsNullOrEmpty(basePath)) return;
+
+            string formatedDayNumber = $"test-{dayToInitialize.ToString().PadLeft(2, '0')}.txt";
+            string folderPath = Path.Combine(basePath, "Tests");
+            string filePath = Path.Combine(folderPath, formatedDayNumber);
+
+            Directory.CreateDirectory(folderPath);
+
+            string templatePath = Path.Combine("Templates", "test-template.txt");
+            string templateContent = File.ReadAllText(templatePath);
+
+            File.WriteAllText(filePath, templateContent);
         }
     }
 }

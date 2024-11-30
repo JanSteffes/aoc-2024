@@ -28,7 +28,15 @@ namespace aoc_2024.Classes
 
         public void LoadLastExecution()
         {
-            string filePath = Path.Combine("ProgramUtils", "last-choice.txt");
+            string? basePath = FileUtils.FindProjectFolder();
+
+            if (string.IsNullOrEmpty(basePath))
+            {
+                this.logger.Log("Tests folder not found", LogSeverity.Error);
+                return;
+            }
+
+            string filePath = Path.Combine(basePath, "ProgramUtils", "last-choice.txt");
 
             if (!File.Exists(filePath))
             {
@@ -77,8 +85,8 @@ namespace aoc_2024.Classes
             }
 
             if (this.lastExecutionSettings.mode == Mode.Test &&
-                !settings.TryGetValue("TestNumber", out string? testNumberText)
-                && !int.TryParse(testNumberText, out this.lastExecutionSettings.testNumber))
+                (!settings.TryGetValue("TestNumber", out string? testNumberText) ||
+                !int.TryParse(testNumberText, out this.lastExecutionSettings.testNumber)))
             {
                 this.logger.Log("Invalid test number.", LogSeverity.Error);
                 return false;
@@ -89,10 +97,18 @@ namespace aoc_2024.Classes
 
         public void WriteLastChoice(int dayNumber, Mode mode, Part part, int? testNumber = null)
         {
-            string folderPath = Path.Combine("ProgramUtils");
-            string filePath = Path.Combine(folderPath, "last-choice.txt");
+            string? basePath = FileUtils.FindProjectFolder();
 
+            if (string.IsNullOrEmpty(basePath))
+            {
+                this.logger.Log("Unable to find base folder", LogSeverity.Error);
+                return;
+            }
+
+            string folderPath = Path.Combine(basePath, "ProgramUtils");
             Directory.CreateDirectory(folderPath);
+
+            string filePath = Path.Combine(folderPath, "last-choice.txt");
 
             StringBuilder content = new();
             content.AppendLine($"Day={dayNumber}");

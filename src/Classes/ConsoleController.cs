@@ -11,15 +11,21 @@ namespace aoc_2024.Classes
         private readonly ILogger logger;
         private readonly ISolutionManager solutionManager;
         private readonly ILastExecutionManager lastExecutionManager;
+        private readonly ITestManager testManager;
 
-        public ConsoleController(IRunner runner, IAocClient aocClient, ILogger logger,
-            ISolutionManager solutionManager, ILastExecutionManager lastExecutionManager)
+        public ConsoleController(IRunner runner,
+                                 IAocClient aocClient,
+                                 ILogger logger,
+                                 ISolutionManager solutionManager,
+                                 ILastExecutionManager lastExecutionManager,
+                                 ITestManager testManager)
         {
             this.runner = runner;
             this.aocClient = aocClient;
             this.logger = logger;
             this.solutionManager = solutionManager;
             this.lastExecutionManager = lastExecutionManager;
+            this.testManager = testManager;
         }
 
         public void Run()
@@ -35,9 +41,10 @@ namespace aoc_2024.Classes
                 switch (mode)
                 {
                     case Mode.Run:
-                        RunDay();
+                        SelectAndRunDay();
                         break;
                     case Mode.Test:
+                        SelectAndRunTest();
                         break;
                     case Mode.Init:
                         InitializeDay();
@@ -65,13 +72,13 @@ namespace aoc_2024.Classes
             AnsiConsole.Write(rule);
 
             AnsiConsole.Write(
-                new FigletText("AoC 2024")
+                new FigletText($"AoC {Consts.year}")
                 .Centered()
                 .Color(Color.Red));
 
             AnsiConsole.WriteLine();
-
             AnsiConsole.Write(rule);
+            AnsiConsole.WriteLine();
         }
 
         private void RunLastCommand()
@@ -86,30 +93,33 @@ namespace aoc_2024.Classes
 
             if (execution.mode == Mode.Run)
             {
-                this.logger.Log($"Running day {execution.day} part {execution.part}", LogSeverity.Log);
-                // RunDay(dayNumber, part);
+                RunDay(execution.day, execution.part);
             }
             else if (execution.mode == Mode.Test)
             {
-                if (execution.testNumber != 0)
+                TestCase? testCase = this.testManager.Parse(execution.day)
+                    .FirstOrDefault(t => t.TestNumber == execution.testNumber);
+
+                if (testCase != null)
                 {
-                    this.logger.Log($"Running test {execution.testNumber} for day {execution.day} part {execution.part}", LogSeverity.Log);
-                    // TestDay(dayNumber, part, testNumber);
+                    RunTest(execution.day, execution.part, testCase);
                 }
                 else
                 {
-                    this.logger.Log("Invalid test number or Test not found.", LogSeverity.Error);
+                    this.logger.Log($"Unable to find Test #{execution.testNumber}", LogSeverity.Error);
                 }
             }
             else
             {
-                this.logger.Log("Invalid test mode.", LogSeverity.Error);
+                this.logger.Log("Invalid last execution.", LogSeverity.Error);
             }
         }
 
         private Mode SelectMode()
         {
-            string[] baseChoices = [Mode.Run.ToString(), Mode.Test.ToString(), Mode.Init.ToString(), Mode.Exit.ToString()];
+            string[] baseChoices = new List<Mode> { Mode.Run, Mode.Test, Mode.Init, Mode.Exit }
+                .Select(m => m.ToString())
+                .ToArray();
 
             string[] choices = this.lastExecutionManager.HasLastExecution() ?
                 [GetLastExecutionString(), .. baseChoices] :
@@ -117,7 +127,6 @@ namespace aoc_2024.Classes
 
             string modeText = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
-                .Title("[bold]Mode selection[/]")
                 .AddChoices(choices)
                 );
 
@@ -141,7 +150,28 @@ namespace aoc_2024.Classes
                 );
         }
 
-        private void RunDay()
+        private static Part SelectAvailableTestPart(TestCase testCase)
+        {
+            List<Part> parts = [];
+
+            if (!string.IsNullOrEmpty(testCase.AnswerA))
+            {
+                parts.Add(Part.A);
+            }
+            if (!string.IsNullOrEmpty(testCase.AnswerB))
+            {
+                parts.Add(Part.B);
+            }
+
+            return AnsiConsole.Prompt(
+                new SelectionPrompt<Part>()
+                .UseConverter(m => m.ToString())
+                .Title("[bold]Part selection[/]")
+                .AddChoices(parts)
+                );
+        }
+
+        private void SelectAndRunDay()
         {
             int dayToRun = ChoseAvailableSolution();
 
@@ -158,27 +188,143 @@ namespace aoc_2024.Classes
 
             PrintHeader();
 
+            RunDay(dayToRun, partToRun);
+        }
+        
+        private void RunDay(int dayToRun, Part partToRun)
+        {
             this.lastExecutionManager.WriteLastChoice(dayToRun, Mode.Run, partToRun);
 
             AnsiConsole.WriteLine();
 
+            ExecutionResult? result = null;
+
             AnsiConsole.Status()
-                .Start("Running...", ctx =>
+                .Start($"Running Day #{dayToRun} - Part {partToRun}...",
+                ctx =>
                 {
                     ctx.Spinner(Spinner.Known.Star);
                     ctx.SpinnerStyle(Style.Parse("green"));
+
                     ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
-                    if (solution != null)
+                    string input = this.solutionManager.ReadInputFile(dayToRun);
+
+                    if (solution != null && !string.IsNullOrEmpty(input))
                     {
-                        string input = this.solutionManager.ReadInputFile(dayToRun);
-                        if (!string.IsNullOrEmpty(input))
-                        {
-                            this.runner.RunDay(solution, dayToRun, partToRun, input);
-                        }
+                        result = this.runner.Run(solution, dayToRun, partToRun, input);
                     }
-                    Thread.Sleep(5000);
                 });
 
+            if (result != null)
+            {
+                if (result.ResultType == ExecutionResultType.Success)
+                {
+                    this.logger.Log($"Day #{dayToRun} - Part {partToRun} successfully run!", LogSeverity.Runner);
+                    this.logger.Log($"Result: {result.Result}", LogSeverity.Runner);
+                    this.logger.Log($"Elapsed time: {result.ElapsedTimeInMs} ms", LogSeverity.Runner);
+                }
+                else
+                {
+                    this.logger.Log($"Error runnning Day #{dayToRun} - Part {partToRun}:", LogSeverity.Error);
+                    this.logger.Log(result.Result, LogSeverity.Other);
+                }
+
+            }
+            else
+            {
+                this.logger.Log($"There was a problem running Day #{dayToRun} - Part {partToRun}",
+                    LogSeverity.Error);
+            }
+
+            AnsiConsole.WriteLine();
+            this.logger.Log("Press any key to continue", LogSeverity.Other);
+            Console.ReadKey();
+        }
+
+        private void SelectAndRunTest()
+        {
+            int dayToRun = ChoseAvailableTestDay();
+            List<TestCase> testCases = this.testManager.Parse(dayToRun);
+
+            if (testCases.Count == 0)
+            {
+                this.logger.Log($"Day #{dayToRun} has no valid tests. Press any key to continue.", LogSeverity.Error);
+                Console.ReadKey();
+                return;
+            }
+
+            int[] availableTestCases = testCases.Select(t => t.TestNumber).Order().ToArray();
+
+            int testCaseToRun = ChoseAvailableTestCase(availableTestCases);
+
+            TestCase testCase = testCases.First(t => t.TestNumber == testCaseToRun);
+
+            Part partToRun = SelectAvailableTestPart(testCase);
+
+            Console.Clear();
+
+            PrintHeader();
+
+            this.lastExecutionManager.WriteLastChoice(dayToRun, Mode.Test, partToRun, testCaseToRun);
+
+            RunTest(dayToRun, partToRun, testCase);
+        }
+
+        private void RunTest(int dayToRun, Part partToRun, TestCase testCaseToRun)
+        {
+            AnsiConsole.WriteLine();
+
+            ExecutionResult? result = null;
+            string? expectedResult = partToRun == Part.A ? testCaseToRun.AnswerA : testCaseToRun.AnswerB;
+
+            AnsiConsole.Status()
+                .Start($"Running Test #{testCaseToRun.TestNumber} for Day #{dayToRun} - Part {partToRun}...",
+                ctx =>
+                {
+                    ctx.Spinner(Spinner.Known.Star);
+                    ctx.SpinnerStyle(Style.Parse("green"));
+
+                    ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
+                    string input = this.solutionManager.ReadInputFile(dayToRun);
+
+                    if (solution != null && !string.IsNullOrEmpty(input))
+                    {
+                        result = this.runner.Run(solution, dayToRun, partToRun, input);
+                    }
+                });
+
+            if (result != null && !string.IsNullOrEmpty(expectedResult))
+            {
+                if (result.ResultType == ExecutionResultType.Success)
+                {
+                    this.logger.Log($"Test #{testCaseToRun.TestNumber} for Day #{dayToRun} - Part {partToRun} successfully run!", LogSeverity.Runner);
+                    this.logger.Log($"Result: {result.Result}", LogSeverity.Runner);
+                    this.logger.Log($"Expected result: {expectedResult}", LogSeverity.Runner);
+                    this.logger.Log($"Elapsed time: {result.ElapsedTimeInMs} ms", LogSeverity.Runner);
+
+                    if (result.Result == expectedResult)
+                    {
+                        this.logger.Log($"Your test [green]passed[/]!", LogSeverity.Runner);
+                    }
+                    else
+                    {
+                        this.logger.Log($"Your test [red]failed[/]!", LogSeverity.Runner);
+                    }
+                }
+                else
+                {
+                    this.logger.Log($"Error runnning Day #{dayToRun} - Part {partToRun}:", LogSeverity.Error);
+                    this.logger.Log(result.Result, LogSeverity.Other);
+                }
+
+            }
+            else
+            {
+                this.logger.Log($"There was a problem running Day #{dayToRun} - Part {partToRun}",
+                    LogSeverity.Error);
+            }
+
+            AnsiConsole.WriteLine();
             this.logger.Log("Press any key to continue", LogSeverity.Other);
             Console.ReadKey();
         }
@@ -202,22 +348,22 @@ namespace aoc_2024.Classes
                 .Start($"Initializing day #{dayToInitialize}...", ctx =>
                 {
                     ctx.Spinner(Spinner.Known.Star2);
-                    AnsiConsole.MarkupLine("[blue]Getting puzzle input from AoC...[/]");
+                    this.logger.Log("Getting puzzle input from AoC...", LogSeverity.Log);
                     ClientResponse input = this.aocClient.GetPuzzleInput(dayToInitialize).Result;
                     if (input.ResponseType == ClientResponseType.Success)
                     {
-                        AnsiConsole.MarkupLine("[green]Puzzle input fetched with success![/]");
+                        this.logger.Log("Puzzle input fetched with success!", LogSeverity.Log);
                         ctx.Spinner(Spinner.Known.Christmas);
-                        AnsiConsole.MarkupLine("[blue]Creating files...[/]");
+                        this.logger.Log("Creating files...", LogSeverity.Log);
                         this.solutionManager.CreateInitialFiles(dayToInitialize, input.Content);
-                        AnsiConsole.MarkupLine($"[green]Files created for Day #{dayToInitialize}[/]");
+                        this.logger.Log($"Files created for Day #{dayToInitialize}", LogSeverity.Log);
                     }
                     else
                     {
-                        AnsiConsole.MarkupLine($"[red]Error getting puzzle input:[/] \r\n: {input.Content}");
+                        this.logger.Log($"Error getting puzzle input:\r\n: {input.Content}", LogSeverity.Error);
                     }
 
-                    AnsiConsole.MarkupLine("Press any key to return to main menu");
+                    this.logger.Log("Press any key to return to main menu", LogSeverity.Other);
                 });
 
             Console.ReadKey();
@@ -237,6 +383,40 @@ namespace aoc_2024.Classes
                 .Title("[bold]Select day[/]")
                 .PageSize(5)
                 .AddChoices(availableSolutions)
+                );
+
+            return choice;
+        }
+
+        private static int ChoseAvailableTestCase(int[] availableTestCases)
+        {
+            int choice = AnsiConsole.Prompt(
+                new SelectionPrompt<int>()
+                .Title("[bold]Select test case[/]")
+                .PageSize(5)
+                .AddChoices(availableTestCases)
+                );
+
+            return choice;
+        }
+
+        private int ChoseAvailableTestDay()
+        {
+            int[] availableSolutions = this.solutionManager.GetAvailableSolutions();
+            int[] availableTests = this.testManager.GetAvailableTests();
+
+            int[] intersection = availableSolutions.Intersect(availableTests).ToArray();
+
+            if (intersection.Length == 0)
+            {
+                return 0;
+            }
+
+            int choice = AnsiConsole.Prompt(
+                new SelectionPrompt<int>()
+                .Title("[bold]Select day[/]")
+                .PageSize(5)
+                .AddChoices(intersection)
                 );
 
             return choice;

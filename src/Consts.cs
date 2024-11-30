@@ -2,7 +2,7 @@
 {
     public static class Consts
     {
-        public const int year = 2023;
+        public const int year = 2024;
         public const string baseUri = "https://adventofcode.com";
     }
 

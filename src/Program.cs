@@ -15,6 +15,7 @@ namespace aoc_2024
                 .AddSingleton<ILastExecutionManager, LastExecutionManager>()
                 .AddSingleton<IAocClient, AocHttpClient>()
                 .AddSingleton<IRunner, ConsoleRunner>()
+                .AddSingleton<ITestManager, TestManager>()
                 .AddSingleton<IController, ConsoleController>()
                 .BuildServiceProvider();
 

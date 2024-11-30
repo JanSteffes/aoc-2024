@@ -1,21 +1,21 @@
 TestNumber=
 1
 AnswerA=
-[Insert answer A here]
+[Empty]
 AnswerB=
-[Insert answer B here]
+[Empty]
 Input=
-[Insert input here]
+[Empty]
 
 ================================
 
 TestNumber=
 2
 AnswerA=
-[Insert answer A here]
+[Empty]
 AnswerB=
-[Insert answer B here]
+[Empty]
 Input=
-[Insert input here]
+[Empty]
 
 ================================
