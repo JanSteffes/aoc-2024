@@ -3,7 +3,6 @@
 
 # Ignore inputs and program utils
 src/Inputs/
-src/Tests/
 src/ProgramUtils/
 
 # User-specific files

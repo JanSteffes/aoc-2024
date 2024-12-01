@@ -285,7 +285,7 @@ namespace aoc_2024.Classes
                     ctx.SpinnerStyle(Style.Parse("green"));
 
                     ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
-                    string input = this.solutionManager.ReadInputFile(dayToRun);
+                    string input = testCaseToRun.Input;
 
                     if (solution != null && !string.IsNullOrEmpty(input))
                     {
