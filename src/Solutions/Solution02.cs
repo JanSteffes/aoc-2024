@@ -1,4 +1,5 @@
 using aoc_2024.Interfaces;
+using aoc_2024.SolutionUtils;
 
 namespace aoc_2024.Solutions
 {
@@ -34,7 +35,8 @@ namespace aoc_2024.Solutions
 
         public static List<int[]> GetReportLevels(string inputString)
         {
-            return inputString.Split(Environment.NewLine)
+            return
+                ParseUtils.ParseIntoLines(inputString)
                 .Select(s =>
                     s.Split(" ")
                     .Select(int.Parse)
