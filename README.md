@@ -1,3 +1,6 @@
+Copied from https://github.com/GessioMori/aoc-2024
+
+
 # Advent of Code 2024
 
 ![ScreenShot](https://github.com/user-attachments/assets/59fd2185-9d84-4bd6-9cd2-bd9dce7f71a4)
