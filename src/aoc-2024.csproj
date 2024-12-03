@@ -22,7 +22,6 @@
   <ItemGroup>
     <Folder Include="Inputs\" />
     <Folder Include="ProgramUtils\" />
-    <Folder Include="Solutions\" />
     <Folder Include="Tests\" />
   </ItemGroup>
 
