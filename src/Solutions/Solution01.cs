@@ -1,4 +1,5 @@
 using aoc_2024.Interfaces;
+using aoc_2024.SolutionUtils;
 using System.Text.RegularExpressions;
 
 namespace aoc_2024.Solutions
@@ -38,16 +39,15 @@ namespace aoc_2024.Solutions
             return similarityScore.ToString();
         }
 
-        private static (List<int> FirstList, List<int> SecondList) GetLists(string inputValues)
+        private static (List<int> FirstList, List<int> SecondList) GetLists(string inputString)
         {
             const string numberRegex = "^(\\d+)\\s+(\\d+)$";
             var regexToMatch = new Regex(numberRegex);
-
-            var allValues = inputValues.Split(Environment.NewLine)
-                .Select(x => regexToMatch.Matches(x))
+            var lines = ParseUtils.ParseIntoLines(inputString)
+                .Select(s => regexToMatch.Matches(s))
                 .Select(s => (FirstValue: int.Parse(s[0].Groups[1].Value), SecondValue: int.Parse(s[0].Groups[2].Value))).ToList();
-            var firstList = allValues.Select(s => s.FirstValue).ToList();
-            var secondList = allValues.Select(s => s.SecondValue).ToList();
+            var firstList = lines.Select(s => s.FirstValue).ToList();
+            var secondList = lines.Select(s => s.SecondValue).ToList();
             return (firstList, secondList);
         }
     }
