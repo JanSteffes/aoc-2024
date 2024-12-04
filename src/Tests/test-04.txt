@@ -20,9 +20,9 @@ MXMXAXMASX
 TestNumber=
 2
 AnswerA=
-9
-AnswerB=
 [Empty]
+AnswerB=
+9
 Input=
 MMMSXXMASM
 MSAMXMSMSA
