@@ -1,6 +1,6 @@
 using aoc_2024.Interfaces;
+using aoc_2024.Solutions.Helper;
 using aoc_2024.SolutionUtils;
-using System.Diagnostics;
 
 namespace aoc_2024.Solutions
 {
@@ -9,162 +9,91 @@ namespace aoc_2024.Solutions
         public string RunPartA(string inputData)
         {
             var lines = ParseUtils.ParseIntoLines(inputData);
-            // build strings - easiest are horizontal lines 
             var overallFindings = 0;
-            var horizontalStrings = GetHorizontalLines(lines);
-            overallFindings += SearchDirectionForString(horizontalStrings, "horizontal");
+            var horizontalStrings = Solution4Helper.GetHorizontalLines(lines);
+            overallFindings += Solution4Helper.SearchDirectionForString(horizontalStrings, "horizontal");
 
-            var verticalStrings = GetVertialLines(lines);
-            overallFindings += SearchDirectionForString(verticalStrings, "vertical");
+            var verticalStrings = Solution4Helper.GetVertialLines(lines);
+            overallFindings += Solution4Helper.SearchDirectionForString(verticalStrings, "vertical");
 
-            var diagonalStrings = GetDiagonalLines(lines);
-            overallFindings += SearchDirectionForString(diagonalStrings, "diagonal");
+            var diagonalStrings = Solution4Helper.GetDiagonalLines(lines);
+            overallFindings += Solution4Helper.SearchDirectionForString(diagonalStrings, "diagonal");
 
             return overallFindings.ToString();
         }
 
         public string RunPartB(string inputData)
         {
-            throw new NotImplementedException();
+            var coordinateSystem = BuildCoordinateSystemFromString(inputData);
+            var possibleXmasCenters = GetPossibleXmasCenters(coordinateSystem);
+            var xmases = GetXmasesCenters(coordinateSystem, possibleXmasCenters);
+            return xmases.Count.ToString();
+
         }
 
-        public int SearchDirectionForString(IEnumerable<string> lines, string ident)
+        /// <summary>
+        /// check each possible xmas-centers (being an 'A') if x-1,y+1 and x+1,y-1 as well as x-1,y-1 and x+1,y-1 produces sam or mas
+        /// </summary>
+        /// <param name="coordinateSystem"></param>
+        /// <param name="possibleXmasCenters"></param>
+        /// <returns></returns>
+        private static List<(int X, int Y)> GetXmasesCenters(char[][] coordinateSystem, List<(int X, int Y)> possibleXmasCenters)
         {
-            Debug.WriteLine(ident + ":");
-            var findingsNormal = SearchLinesForString(lines);
-            Debug.WriteLine("");
-            Debug.WriteLine(ident + "- reversed:");
-            var findingsReversed = SearchLinesForString(lines.Select(h => new string(h.Reverse().ToArray())));
-            Debug.WriteLine("");
-            Debug.WriteLine("######################");
-            Debug.WriteLine("");
-            return findingsNormal + findingsReversed;
-        }
-
-
-        public int SearchLinesForString(IEnumerable<string> lines)
-        {
-            var allFindings = 0;
-            var lineNumber = 0;
-            foreach (var line in lines)
+            var xmasCenters = new List<(int X, int Y)>();
+            foreach (var center in possibleXmasCenters)
             {
-                var findings = SearchLineForString(line);
-                if (findings > 0)
+                if (IsMas(coordinateSystem[center.X - 1][center.Y - 1], coordinateSystem[center.X][center.Y], coordinateSystem[center.X + 1][center.Y + 1])
+                    && IsMas(coordinateSystem[center.X - 1][center.Y + 1], coordinateSystem[center.X][center.Y], coordinateSystem[center.X + 1][center.Y - 1]))
                 {
-                    Debug.WriteLine($"Found {findings} in line {lineNumber + 1}/{lines.Count()}: \"{line}\"");
-                    allFindings += findings;
+                    xmasCenters.Add(center);
                 }
-                lineNumber++;
             }
-            return allFindings;
+            return xmasCenters;
         }
 
-        public int SearchLineForString(string line)
+        private static bool IsMas(params char[] chars)
         {
-            var findings = 0;
-            var charsToMatch = "XMAS";
-            var charToMatchIndex = 0;
-            var currentCharToMatch = charsToMatch[charToMatchIndex];
-            foreach (var currentChar in line)
+            var stringToCheck = new string(chars);
+            return stringToCheck == "MAS" || stringToCheck == "SAM";
+        }
+
+        private static char[][] BuildCoordinateSystemFromString(string inputData)
+        {
+            var lines = ParseUtils.ParseIntoLines(inputData);
+            var length = lines.Length;
+            var coordinateSystem = new char[length][];
+            for (int column = 0; column < length; column++)
             {
-                if (currentChar == currentCharToMatch)
+                coordinateSystem[column] = new char[length];
+                for (int row = 0; row < length; row++)
                 {
-                    charToMatchIndex++;
-                    if (charToMatchIndex == charsToMatch.Length)
+                    coordinateSystem[column][row] = lines[length - 1 - row][column];
+                }
+            }
+            return coordinateSystem;
+        }
+
+        /// <summary>
+        /// check each coordinate where x and y are at least 1 smaller than bounds if it's an a.
+        /// </summary>
+        /// <param name="coordinateSystem"></param>
+        /// <returns></returns>
+        private static List<(int X, int Y)> GetPossibleXmasCenters(char[][] coordinateSystem)
+        {
+            var possibleXmasCenters = new List<(int X, int Y)>();
+            var bounds = coordinateSystem.Length;
+            for (var column = 1; column < bounds - 1; column++)
+            {
+                for (var row = 1; row < bounds - 1; row++)
+                {
+                    if (coordinateSystem[column][row] == 'A')
                     {
-                        findings++;
-                        charToMatchIndex = 0;
+                        possibleXmasCenters.Add((column, row));
                     }
-                    currentCharToMatch = charsToMatch[charToMatchIndex];
-                }
-                else
-                {
-                    charToMatchIndex = currentChar == charsToMatch[0] ? 1 : 0;
-                    currentCharToMatch = charsToMatch[charToMatchIndex];
                 }
             }
-            return findings;
-
+            return possibleXmasCenters;
         }
 
-        private IEnumerable<string> GetDiagonalLines(string[] lines)
-        {
-            var diagonalLines = new List<string>();
-            for (var row = 0; row < lines.Length; row++)
-            {
-                var diagonalLinesOfRow = BuildDiagonalLines(lines, row);
-                diagonalLines.AddRange(diagonalLinesOfRow);
-            }
-            return diagonalLines;
-        }
-
-        private IEnumerable<string> BuildDiagonalLines(string[] lines, int startingRow)
-        {
-            var diagonalLines = new List<string>();
-            for (var column = 0; column < lines.Length; column++)
-            {
-                if (startingRow == 0 || column == 0)
-                {
-                    var diagonalRightLine = BuildRightLine(lines, startingRow, column);
-                    diagonalLines.Add(diagonalRightLine);
-                }
-                if (startingRow == 0 || column == lines.Length - 1)
-                {
-                    var diagonalLeftLine = BuildLeftLine(lines, startingRow, column);
-                    diagonalLines.Add(diagonalLeftLine);
-                }
-            }
-            return diagonalLines;
-        }
-
-        private string BuildLeftLine(string[] lines, int startingRow, int startingColumn)
-        {
-            var diagonalLeftLineChars = new List<char>();
-            var column = startingColumn;
-            var currentRow = startingRow;
-            while (lines.Length > currentRow && column >= 0)
-            {
-                diagonalLeftLineChars.Add(lines[currentRow++][column--]);
-            }
-            var line = new string(diagonalLeftLineChars.ToArray());
-            return line;
-        }
-
-        private static string BuildRightLine(string[] lines, int startingRow, int startingColumn)
-        {
-            var diagonalRightLineChars = new List<char>();
-            var column = startingColumn;
-            var currentRow = startingRow;
-            while (lines.Length > currentRow && lines[currentRow].Length > column)
-            {
-                diagonalRightLineChars.Add(lines[currentRow++][column++]);
-            }
-            var line = new string(diagonalRightLineChars.ToArray());
-            return line;
-        }
-
-
-
-
-        private IEnumerable<string> GetVertialLines(string[] lines)
-        {
-            var verticalLines = new List<string>();
-            for (var column = 0; column < lines.Length; column++)
-            {
-                var currentVerticalLine = "";
-                foreach (var line in lines)
-                {
-                    currentVerticalLine += line[column];
-                }
-                verticalLines.Add(currentVerticalLine);
-            }
-            return verticalLines;
-        }
-
-        private List<string> GetHorizontalLines(string[] lines)
-        {
-            var horizonalLines = lines.ToList();
-            return horizonalLines;
-        }
     }
 }
