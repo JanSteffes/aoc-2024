@@ -8,28 +8,14 @@ namespace aoc_2024.Solutions
         public string RunPartA(string inputData)
         {
             var reports = GetReportLevels(inputData);
-            var validReports = 0;
-            foreach (var report in reports)
-            {
-                if (ReportIsValid(report))
-                {
-                    validReports++;
-                }
-            }
+            var validReports = reports.Count(ReportIsValid);
             return validReports.ToString();
         }
 
         public string RunPartB(string inputData)
         {
             var reports = GetReportLevels(inputData);
-            var validReports = 0;
-            foreach (var report in reports)
-            {
-                if (ReportOrReducedReportIsValid(report))
-                {
-                    validReports++;
-                }
-            }
+            var validReports = reports.Count(ReportOrReducedReportIsValid);
             return validReports.ToString();
         }
 
@@ -95,7 +81,7 @@ namespace aoc_2024.Solutions
                 {
                     validationErrors++;
                 }
-                if (!LevelDistanceAreOkay(currentNumber, nextNumber))
+                if (!LevelDistanceIsOkay(currentNumber, nextNumber))
                 {
                     validationErrors++;
                 }
@@ -127,7 +113,7 @@ namespace aoc_2024.Solutions
             return first == second;
         }
 
-        private static bool LevelDistanceAreOkay(int first, int second)
+        private static bool LevelDistanceIsOkay(int first, int second)
         {
             var dist = Math.Abs(first - second);
             return dist > 0 && dist <= 3;
