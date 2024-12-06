@@ -42,7 +42,7 @@ namespace aoc_2024.Solutions
             return middlePageSum.ToString();
         }
 
-        private List<int> GetCorrectedSet(List<int> valueSet, List<Rule> rules)
+        private static List<int> GetCorrectedSet(List<int> valueSet, List<Rule> rules)
         {
             var latestFixedSet = valueSet.ToList();
             while (rules.Any(r => !r.IsValidSet(latestFixedSet)))

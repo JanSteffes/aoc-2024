@@ -1,7 +1,6 @@
-﻿using aoc_2024.Classes;
-using aoc_2024.Solutions;
+﻿using aoc_2024.Solutions;
 
-namespace aoc_2024_unittests
+namespace aoc_2024_unittests.SolutionTests
 {
     [TestFixture]
     public class Solution01Tests
@@ -10,7 +9,9 @@ namespace aoc_2024_unittests
         public void TestA()
         {
             //arrange
-            var testCase = new TestManager(new TestLogger()).Parse(1).First(test => test.TestNumber == 1);
+            var testManager = new UnitTestManager(new TestLogger());
+            var testCasesForDay = testManager.Parse(1);
+            var testCase = testCasesForDay.First(test => test.TestNumber == 1);
             var expected = testCase.AnswerA;
             var input = testCase.Input;
             var solution1 = new Solution01();
