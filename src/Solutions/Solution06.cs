@@ -28,33 +28,42 @@ namespace aoc_2024.Solutions
             {
                 visitedPoints.Add(newPosition);
             }
+
+            //var working = Working(visitedPoints, startPosition, inputData);
+
             var positionsForObstacles = new ConcurrentDictionary<Point, bool>();
             var visitedPointsWithoutStartingPosition = visitedPoints.Except([startPosition]).ToList();
             using var timer = StartLogTimer(positionsForObstacles);
-            Parallel.ForEach(visitedPointsWithoutStartingPosition, new ParallelOptions
+            Parallel.ForEach(visitedPointsWithoutStartingPosition, visitedPoint =>
             {
-                MaxDegreeOfParallelism = 1
-            }, visitedPoint =>
+                var worksForPoint = WouldCreateLoop(startPosition, inputData, visitedPoint);
+                positionsForObstacles.TryAdd(visitedPoint, worksForPoint);
+            });
+            return positionsForObstacles.Where(p => p.Value).Count().ToString();
+        }
+
+        private static bool WouldCreateLoop(Point startPosition, string inputData, Point point)
+        {
+            var currentMap = new Map(inputData);
+            currentMap.AddObstacle(point);
+            var currentlyVisitedPoints = new HashSet<Point> { startPosition };
+            var pathAfterFirstDouble = new List<Point>();
+            while (currentMap.MoveGuard() is Point newPosition && currentMap.IsInMap(newPosition))
+            {
+                if (!currentlyVisitedPoints.Add(newPosition))
                 {
-                    var currentMap = new Map(inputData);
-                    currentMap.AddObstacle(visitedPoint);
-                    var currentlyVisitedPoints = new HashSet<Point> { startPosition };
-                    var doubeHittedPositions = new HashSet<Point>();
-                    var createsLoop = false;
-                    while (currentMap.MoveGuard() is Point newPosition && currentMap.IsInMap(newPosition))
+                    if (pathAfterFirstDouble.Count > 0 && newPosition.Equals(pathAfterFirstDouble[0]))
                     {
-                        if (!currentlyVisitedPoints.Add(newPosition))
-                        {
-                            if (!doubeHittedPositions.Add(newPosition) && !newPosition.Equals(startPosition))
-                            {
-                                createsLoop = true;
-                                break;
-                            }
-                        }
+                        return true;
                     }
-                    positionsForObstacles.TryAdd(visitedPoint, createsLoop);
-                });
-            return positionsForObstacles.Count.ToString();
+                    pathAfterFirstDouble.Add(newPosition);
+                }
+                else if (pathAfterFirstDouble.Count > 0)
+                {
+                    pathAfterFirstDouble = [];
+                }
+            }
+            return false;
         }
 
         private System.Timers.Timer StartLogTimer(ConcurrentDictionary<Point, bool> itemsToLog)
@@ -65,6 +74,7 @@ namespace aoc_2024.Solutions
             timer.Elapsed += delegate { LogStuff(startTime, itemsToLog); };
             timer.AutoReset = true;
             timer.Enabled = true;
+            timer.Start();
             return timer;
         }
 
