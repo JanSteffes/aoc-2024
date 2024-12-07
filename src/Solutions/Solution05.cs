@@ -15,7 +15,7 @@ namespace aoc_2024.Solutions
             var valueLines = lines.Except(ruleLines).ToList();
             var valueSets = valueLines.Select(s => s.Split(',').Select(int.Parse).ToList()).ToList();
 
-            var validSets = valueSets.Where(set => rules.All(rule => rule.IsValidSet(set))).ToList();
+            var validSets = valueSets.Where(set => rules.Where(rule => rule.AppliesToSet(set)).All(rule => rule.IsValidSet(set))).ToList();
 
             var middlePageSum = validSets.Sum(GetMiddlePageNumber);
             return middlePageSum.ToString();
