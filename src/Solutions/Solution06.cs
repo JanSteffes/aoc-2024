@@ -31,6 +31,8 @@ namespace aoc_2024.Solutions
 
             //var working = Working(visitedPoints, startPosition, inputData);
 
+            // is not 1471 or 1839. 1839 was too high
+
             var positionsForObstacles = new ConcurrentDictionary<Point, bool>();
             var visitedPointsWithoutStartingPosition = visitedPoints.Except([startPosition]).ToList();
             using var timer = StartLogTimer(positionsForObstacles);
@@ -117,7 +119,7 @@ namespace aoc_2024.Solutions
         public Point MoveGuard()
         {
             var newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
-            if (Obstacles.Any(obstaclePosition => obstaclePosition.Equals(newPosition)))
+            while (Obstacles.Any(obstaclePosition => obstaclePosition.Equals(newPosition)))
             {
                 GuardFaceDirection = GuardFaceDirection.TurnOnObstacle();
                 newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
