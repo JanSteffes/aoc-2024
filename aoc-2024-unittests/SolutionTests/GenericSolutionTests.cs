@@ -20,7 +20,7 @@ namespace aoc_2024_unittests.SolutionTests
         [TestCase("7", 1, "A")]
         [TestCase("7", 1, "B")]
         [TestCase("8", 1, "A")]
-        //[TestCase("8", 1, "B")]
+        [TestCase("8", 1, "B")]
         public void TestSolution(int day, int testNumber, string part)
         {
             // arrange
