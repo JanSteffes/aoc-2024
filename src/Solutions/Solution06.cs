@@ -1,6 +1,7 @@
 using aoc_2024.Interfaces;
-using aoc_2024.SolutionUtils;
+using aoc_2024.Solutions.Helper;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 
@@ -10,18 +11,19 @@ namespace aoc_2024.Solutions
     {
         public string RunPartA(string inputData)
         {
-            var map = new Map(inputData);
+            var map = new PathMap(inputData);
             var visitedPoints = new HashSet<Point> { map.GetGuardPosition() };
             while (map.MoveGuard() is Point newPosition && map.IsInMap(newPosition))
             {
                 visitedPoints.Add(newPosition);
             }
+            // 4559
             return visitedPoints.Count.ToString();
         }
 
         public string RunPartB(string inputData)
         {
-            var map = new Map(inputData);
+            var map = new PathMap(inputData);
             var startPosition = map.GetGuardPosition();
             var visitedPoints = new HashSet<Point> { startPosition };
             while (map.MoveGuard() is Point newPosition && map.IsInMap(newPosition))
@@ -41,13 +43,14 @@ namespace aoc_2024.Solutions
                 var worksForPoint = WouldCreateLoop(startPosition, inputData, visitedPoint);
                 positionsForObstacles.TryAdd(visitedPoint, worksForPoint);
             });
+            // 1604 (around 10 sec)
             return positionsForObstacles.Where(p => p.Value).Count().ToString();
         }
 
         private static bool WouldCreateLoop(Point startPosition, string inputData, Point point)
         {
-            var currentMap = new Map(inputData);
-            currentMap.AddObstacle(point);
+            var currentMap = new PathMap(inputData);
+            currentMap.AddValuePoint(new ValuePoint<char>('0', point));
             var currentlyVisitedPoints = new HashSet<Point> { startPosition };
             var pathAfterFirstDouble = new List<Point>();
             while (currentMap.MoveGuard() is Point newPosition && currentMap.IsInMap(newPosition))
@@ -86,40 +89,31 @@ namespace aoc_2024.Solutions
         }
     }
 
-    internal class Map
+    internal class PathMap : MapBase
     {
         // TODO get those from Directionenum
         private readonly char[] faceDirectionChars = ['^', '>', '<', 'v'];
 
         private readonly char[] obstacleChars = ['#'];
 
-        private int MaxX { get; set; }
-
-        private int MaxY { get; set; }
-
-        private List<Point> Obstacles { get; set; }
-
         private Point GuardPositionOnMap { get; set; }
 
         private Direction GuardFaceDirection { get; set; }
 
-        public Map(string inputData)
+        public PathMap(string inputData) : base(inputData)
         {
-            var grid = BuildCoordinateSystemFromString(inputData);
-            MaxY = MaxX = grid.Length;
-            Obstacles = GetObstacles(grid);
-            InitGuardPosition(grid);
+            InitGuardPosition(Grid);
         }
 
-        public void AddObstacle(Point obstacle)
+        protected override ReadOnlyCollection<char> GetValuePointChars()
         {
-            Obstacles.Add(obstacle);
+            return new ReadOnlyCollection<char>(obstacleChars);
         }
 
         public Point MoveGuard()
         {
             var newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
-            while (Obstacles.Any(obstaclePosition => obstaclePosition.Equals(newPosition)))
+            while (ValuePoints.Any(obstaclePosition => obstaclePosition.Coordinate.Equals(newPosition)))
             {
                 GuardFaceDirection = GuardFaceDirection.TurnOnObstacle();
                 newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
@@ -128,33 +122,10 @@ namespace aoc_2024.Solutions
             return newPosition;
         }
 
-        public bool IsInMap(Point position)
-        {
-            return position.Y < MaxY && position.X < MaxX && position.Y >= 0 && position.X >= 0;
-        }
-
         public Point GetGuardPosition()
         {
             return new Point(GuardPositionOnMap.X, GuardPositionOnMap.Y);
         }
-
-        private char[][] BuildCoordinateSystemFromString(string inputData)
-        {
-            var lines = ParseUtils.ParseIntoLines(inputData);
-            var length = lines.Length;
-            var coordinateSystem = new char[length][];
-            for (int column = 0; column < length; column++)
-            {
-                coordinateSystem[column] = new char[length];
-                for (int row = 0; row < length; row++)
-                {
-                    var charToSet = lines[length - 1 - row][column];
-                    coordinateSystem[column][row] = charToSet;
-                }
-            }
-            return coordinateSystem;
-        }
-
 
         private void InitGuardPosition(char[][] grid)
         {
@@ -173,22 +144,6 @@ namespace aoc_2024.Solutions
             {
                 throw new ArgumentException("Could not get guardposition!");
             }
-        }
-
-        private List<Point> GetObstacles(char[][] grid)
-        {
-            var obstacleList = new List<Point>();
-            for (var x = 0; x < grid.Length; x++)
-            {
-                for (var y = 0; y < grid[x].Length; y++)
-                {
-                    if (obstacleChars.Contains(grid[x][y]))
-                    {
-                        obstacleList.Add(new Point(x, y));
-                    }
-                }
-            }
-            return obstacleList;
         }
     }
 
