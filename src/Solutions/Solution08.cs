@@ -1,7 +1,6 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Drawing;
 
 namespace aoc_2024.Solutions
@@ -12,23 +11,11 @@ namespace aoc_2024.Solutions
         {
             var map = new AntennaMap(inputData);
             var antennaPositionsByFrequency = map.GetAntennaPositionsByFrequency();
-            var antennaPositionsCount = antennaPositionsByFrequency.Sum(a => a.Value.Count);
             var antinodes = new Dictionary<char, List<Point>>();
-            var filderedAntinodes = new Dictionary<char, List<Point>>();
-            foreach (var entry in antennaPositionsByFrequency)
-            {
-                filderedAntinodes.Add(entry.Key, []);
-            }
             foreach (var antennaPositionGroup in antennaPositionsByFrequency)
             {
-                var currentAntiNodes = ProcessAntennaGroup(map, antennaPositionsByFrequency, filderedAntinodes, antennaPositionGroup);
+                var currentAntiNodes = GetAntinodesForAntennaGroupA(map, antennaPositionsByFrequency, antennaPositionGroup);
                 antinodes.Add(antennaPositionGroup.Key, currentAntiNodes);
-            }
-            foreach (var item in antinodes)
-            {
-                var orderedItems = item.Value.OrderBy(v => v.X).ThenBy(v => v.Y).ToList();
-                item.Value.Clear();
-                item.Value.AddRange(orderedItems);
             }
             var distinctAntinodes = antinodes.SelectMany(a => a.Value).Distinct().ToList();
             // 426
@@ -38,11 +25,20 @@ namespace aoc_2024.Solutions
 
         public string RunPartB(string inputData)
         {
-            // 1359 should be correct
-            throw new NotImplementedException();
+            var map = new AntennaMap(inputData);
+            var antennaPositionsByFrequency = map.GetAntennaPositionsByFrequency();
+            var antinodes = new Dictionary<char, List<Point>>();
+            foreach (var antennaPositionGroup in antennaPositionsByFrequency)
+            {
+                var currentAntiNodes = GetAntinodesForAntennaGroupB(map, antennaPositionsByFrequency, antennaPositionGroup);
+                antinodes.Add(antennaPositionGroup.Key, currentAntiNodes);
+            }
+            var distinctAntinodes = antinodes.SelectMany(a => a.Value).Distinct().ToList();
+            // 1359
+            return distinctAntinodes.Count.ToString();
         }
 
-        private static List<Point> ProcessAntennaGroup(AntennaMap map, IDictionary<char, List<Point>> antennaPositionsByFrequency, Dictionary<char, List<Point>> filderedAntinodes, KeyValuePair<char, List<Point>> antennaPositionGroup)
+        private static List<Point> GetAntinodesForAntennaGroupA(AntennaMap map, IDictionary<char, List<Point>> antennaPositionsByFrequency, KeyValuePair<char, List<Point>> antennaPositionGroup)
         {
             var currentAntiNodes = new List<Point>();
             var currentChar = antennaPositionGroup.Key;
@@ -61,25 +57,35 @@ namespace aoc_2024.Solutions
                         otherPosition.Y + OffsetY);
                     if (map.IsInMap(antiNodePosition))
                     {
-                        if (currentAntiNodes.All(ap => !ap.Equals(antiNodePosition)))
-                        {
-                            // why do i not have to check for this?!
-                            //if (otherAntennaPositionGroups.All(at => at.Value.All(v => !v.Equals(antiNodePosition))))
-                            //{
-                            currentAntiNodes.Add(antiNodePosition);
-                            //}
-                            //else
-                            //{
-                            //    var antennasOccupyingSpace = otherAntennaPositionGroups.Where(at => at.Value.Any(v => v.Equals(antiNodePosition))).ToList();
-                            //    Debug.WriteLine($"[{currentChar}] Filtered {antiNodePosition} because antenna(s) of {string.Join(",", antennasOccupyingSpace.Select(s => s.Key))} already occupy it!");
-                            //    filderedAntinodes[currentChar].Add(antiNodePosition);
-                            //}
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"[{currentChar}] Filtered {antiNodePosition} because alread contained in current antiNodePositions!");
-                            filderedAntinodes[currentChar].Add(antiNodePosition);
-                        }
+                        currentAntiNodes.Add(antiNodePosition);
+                    }
+                }
+            }
+            return currentAntiNodes;
+        }
+
+        private static List<Point> GetAntinodesForAntennaGroupB(AntennaMap map, IDictionary<char, List<Point>> antennaPositionsByFrequency, KeyValuePair<char, List<Point>> antennaPositionGroup)
+        {
+            var currentAntiNodes = new List<Point>(antennaPositionGroup.Value);
+            var currentChar = antennaPositionGroup.Key;
+            var positions = antennaPositionGroup.Value;
+            var otherAntennaPositionGroups = antennaPositionsByFrequency.Where(e => e.Key != currentChar).ToList();
+            foreach (var antennaPosition in positions)
+            {
+                foreach (var otherPosition in positions.Except([antennaPosition]))
+                {
+                    // calculate offset from my position to the other
+                    var (OffsetX, OffsetY) = (
+                        otherPosition.X - antennaPosition.X,
+                        otherPosition.Y - antennaPosition.Y
+                    );
+                    var antiNodePosition = new Point(otherPosition.X + OffsetX,
+                        otherPosition.Y + OffsetY);
+                    while (map.IsInMap(antiNodePosition))
+                    {
+                        currentAntiNodes.Add(antiNodePosition);
+                        antiNodePosition = new Point(antiNodePosition.X + OffsetX,
+                        antiNodePosition.Y + OffsetY);
                     }
                 }
             }
