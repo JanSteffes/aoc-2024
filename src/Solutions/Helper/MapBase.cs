@@ -26,17 +26,17 @@ namespace aoc_2024.Solutions.Helper
             var lines = ParseUtils.ParseIntoLines(inputData);
             var length = lines.Length;
             var coordinateSystem = new char[length][];
-            for (int column = 0; column < length; column++)
+            for (int row = 0; row < length; row++)
             {
-                coordinateSystem[column] = new char[length];
-                for (int row = 0; row < length; row++)
+                coordinateSystem[row] = new char[length];
+                for (int column = 0; column < length; column++)
                 {
-                    var charToSet = lines[length - 1 - row][column];
+                    var charToSet = lines[length - 1 - column][row];
                     if (obstacleChars?.Contains(charToSet) ?? false)
                     {
-                        ValuePoints.Add(new ValuePoint<char>(charToSet, new Point(column, row)));
+                        ValuePoints.Add(new ValuePoint<char>(charToSet, new Point(row, column)));
                     }
-                    coordinateSystem[column][row] = charToSet;
+                    coordinateSystem[row][column] = charToSet;
                 }
             }
             return coordinateSystem;

@@ -347,21 +347,24 @@ namespace aoc_2024.Classes
             ExecutionResult? result = null;
             string? expectedResult = partToRun == Part.A ? testCaseToRun.AnswerA : testCaseToRun.AnswerB;
 
-            AnsiConsole.Status()
-                .Start($"Running Test #{testCaseToRun.TestNumber} for Day #{dayToRun} - Part {partToRun}...",
-                ctx =>
-                {
-                    ctx.Spinner(Spinner.Known.Star);
-                    ctx.SpinnerStyle(Style.Parse("green"));
+            //AnsiConsole.Status()
+            //    .Start($"Running Test #{testCaseToRun.TestNumber} for Day #{dayToRun} - Part {partToRun}...",
+            //    ctx =>
+            //    {
+            //        //ctx.Spinner(Spinner.Known.Star);
+            //        //ctx.SpinnerStyle(Style.Parse("green"));
 
-                    ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
-                    string input = testCaseToRun.Input;
+            //        ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
+            //        string input = testCaseToRun.Input;
 
-                    if (solution != null && !string.IsNullOrEmpty(input))
-                    {
-                        result = this.runner.Run(solution, dayToRun, partToRun, input);
-                    }
-                });
+            //        if (solution != null && !string.IsNullOrEmpty(input))
+            //        {
+            //            result = this.runner.Run(solution, dayToRun, partToRun, input);
+            //        }
+            //    });
+            ISolution? solution = this.solutionManager.CreateSolutionInstance(dayToRun);
+            string input = testCaseToRun.Input;
+            result = this.runner.Run(solution, dayToRun, partToRun, input);
 
             if (result != null && !string.IsNullOrEmpty(expectedResult))
             {
