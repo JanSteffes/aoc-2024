@@ -1,4 +1,5 @@
 using aoc_2024.Interfaces;
+using System.Diagnostics;
 
 namespace aoc_2024.Solutions
 {
@@ -20,9 +21,27 @@ namespace aoc_2024.Solutions
         {
             var fileDigits = inputData.Trim().Chunk(2).Select((x, index) => new SpaceEntry(index, int.Parse(x.First().ToString()), int.Parse(x.Last().ToString()))).ToList();
             var map = CreateBlockEntryMap(fileDigits);
+            WriteMapToDebug(map);
             ProcessMapB(map);
-            var checkSum = map.Select((entry, index) => entry.Value > FreeSpaceValue ? index * entry.Value : 0).Sum();
-            // ? 
+            var index = 0;
+            var checkSum = 0L;
+            foreach (var entry in map)
+            {
+                if (entry.Value == FreeSpaceValue)
+                {
+                    index += entry.Range;
+                    continue;
+                }
+                checkSum += entry.CalculateValue(index);
+                if (checkSum > 6239783302560)
+                {
+                    Debug.WriteLine($"Failed at index {index}, for entry at {map.IndexOf(entry)}");
+                    WriteMapToDebug(map);
+                    break;
+                }
+                index += entry.Range;
+            }
+            // 8358671598691 too high
             return checkSum.ToString();
         }
 
@@ -68,32 +87,118 @@ namespace aoc_2024.Solutions
                     k => k.Key,
                     k => k.Select(q => (EmptySpaceBlock: q, Index: map.IndexOf(q))).ToList());
 
+            //WriteMapToDebug(map);
+            var logId = currentMaxId;
+            var nextLogId = currentMaxId - 20;
             while (currentMaxId > minId)
             {
-                lastLargestValuePos = map.FindLastIndex(lastLargestValuePos, m => m.Value == currentMaxId);
-                var currentMaxIdBlock = map[lastLargestValuePos];
-                var spaceNeeded = currentMaxIdBlock.Range;
-                var matchingSpaces = emptySpaceIndexesWithRange.Where(e => e.Key >= spaceNeeded).ToList();
-                if (matchingSpaces.Count == 0)
+                if (logId-- == nextLogId)
                 {
-                    currentMaxId++;
-                    continue;
+                    //Debug.WriteLine($"Processing {logId}..");
+                    nextLogId -= 20;
                 }
-
-                var firstMatchingSpaceWithRangeGroup = matchingSpaces.MinBy(e => e.Value.MinBy(q => q.Index));
-                var firstMatchingEmptySpace = firstMatchingSpaceWithRangeGroup.Value.MinBy(q => q.Index)!;
-
-                firstMatchingSpaceWithRangeGroup.Value.Remove(firstMatchingEmptySpace);
-
-                (map[lastLargestValuePos], map[firstMatchingEmptySpace.Index]) = (map[firstMatchingEmptySpace.Index], map[lastLargestValuePos]);
-                var newEmptySpaceRange = firstMatchingEmptySpace.EmptySpaceBlock.Range - spaceNeeded;
-                if (newEmptySpaceRange > 0)
+                try
                 {
-                    // TODO prepare new empty space behind firstMatchingEmptySpaceIndex and add in dict and increase index of all spaces with > index by 1
-                    // TODO set empty space at lastLargetValuePos to range of replaces block
+                    lastLargestValuePos = map.FindLastIndex(lastLargestValuePos, m => m.Value == currentMaxId);
+                    if (lastLargestValuePos < 0)
+                    {
+                        //Debug.WriteLine($"# not moving {currentMaxId} because not found anymore");
+                        currentMaxId--;
+                        continue;
+                    }
+                    var currentMaxIdBlock = map[lastLargestValuePos];
+                    var spaceNeeded = currentMaxIdBlock.Range;
+                    var matchingSpaces = emptySpaceIndexesWithRange.Where(e => e.Key >= spaceNeeded).ToList();
+                    if (matchingSpaces.Count == 0)
+                    {
+                        //Debug.WriteLine($"# not moving {currentMaxId} because no matching space found");
+                        currentMaxId--;
+                        continue;
+                    }
+
+
+                    var firstMatchingSpaceWithRangeGroup = matchingSpaces.MinBy(matchingSpace => matchingSpace.Value.MinBy(q => q.Index).Index);
+                    //{
+                    //    try
+                    //    {
+                    //        return matchingSpace.Value.MinBy(q => q.Index).Index;
+                    //    }
+                    //    catch (Exception e)
+                    //    {
+                    //        Debug.WriteLine(e);
+                    //    }
+                    //    return int.MaxValue;
+                    //});
+                    var firstMatchingEmptySpace = firstMatchingSpaceWithRangeGroup.Value.MinBy(q => q.Index)!;
+                    if (firstMatchingSpaceWithRangeGroup.Value.Count == 1)
+                    {
+                        emptySpaceIndexesWithRange.Remove(firstMatchingSpaceWithRangeGroup.Key);
+                    }
+                    else
+                    {
+                        firstMatchingSpaceWithRangeGroup.Value.Remove(firstMatchingEmptySpace);
+                    }
+
+                    //Debug.WriteLine($"# swapping {currentMaxId} at {lastLargestValuePos} with {firstMatchingEmptySpace.Index}");
+
+                    (map[lastLargestValuePos], map[firstMatchingEmptySpace.Index]) = (map[firstMatchingEmptySpace.Index], map[lastLargestValuePos]);
+
+                    // calc and check if already too much
+                    var currentSum = map.Take(firstMatchingEmptySpace.Index + 1).Select((e, index) => e.CalculateValue(index)).Sum();
+                    if (currentSum > 6239783302560)
+                    {
+                        WriteMapToDebug(map);
+                        throw new ArithmeticException($"Result already too hight!");
+                    }
+
+                    var newEmptySpaceRange = firstMatchingEmptySpace.EmptySpaceBlock.Range - spaceNeeded;
+                    if (newEmptySpaceRange > 0)
+                    {
+                        // TODO set empty space at lastLargetValuePos to range of replaces block
+                        map[lastLargestValuePos].Range = spaceNeeded;
+                        // TODO prepare new empty space behind firstMatchingEmptySpaceIndex and add in dict and increase index of all spaces with > index by 1
+                        var newEmptySpaceIndex = firstMatchingEmptySpace.Index + 1;
+                        var newEmptySpace = new MapBlock(FreeSpaceValue, newEmptySpaceRange);
+                        if (emptySpaceIndexesWithRange.TryGetValue(newEmptySpace.Range, out var emptySpaceList))
+                        {
+                            emptySpaceList.Add((newEmptySpace, newEmptySpaceIndex));
+                        }
+                        else
+                        {
+                            emptySpaceIndexesWithRange.Add(newEmptySpace.Range, new List<(MapBlock EmptySpaceBlock, int Index)> { (newEmptySpace, newEmptySpaceIndex) });
+                        }
+                        map.Insert(newEmptySpaceIndex, newEmptySpace);
+                        foreach (var group in emptySpaceIndexesWithRange)
+                        {
+                            for (var index = 0; index < group.Value.Count; index++)
+                            {
+                                if (group.Value[index].Index > newEmptySpaceIndex)
+                                {
+                                    group.Value[index] = (new MapBlock(FreeSpaceValue, group.Value[index].EmptySpaceBlock.Range), group.Value[index].Index + 1);
+                                }
+                            }
+                        }
+                    }
+                    currentMaxId--;
+                    // TODO: outcommend when running for input
+                    //WriteMapToDebug(map);
                 }
-                currentMaxId--;
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"{e.GetType().Name}: {e.Message}");
+                }
             }
+        }
+
+        private static void WriteMapToDebug(List<MapBlock> map)
+        {
+            var mapString = string.Empty;
+            foreach (var block in map)
+            {
+                mapString += "|" + string.Join(string.Empty, Enumerable.Repeat(block.Value.ToString(), block.Range));
+            }
+            mapString = mapString.Replace("-1", ".");
+            Debug.WriteLine(mapString);
         }
 
         private static List<MapBlock> CreateBlockEntryMap(List<SpaceEntry> spaceEntries)
@@ -114,16 +219,26 @@ namespace aoc_2024.Solutions
 
     }
 
-    class MapBlock : MapEntry
+    public class MapBlock : MapEntry
     {
         public int Range { get; set; }
         public MapBlock(long value, int range) : base(value)
         {
             Range = range;
         }
+
+        public long CalculateValue(int index)
+        {
+            var sum = 0L;
+            for (var current = 0; current < Range; current++)
+            {
+                sum += (index + current) * Value;
+            }
+            return sum;
+        }
     }
 
-    class MapEntry
+    public class MapEntry
     {
         public long Value { get; private set; }
 
