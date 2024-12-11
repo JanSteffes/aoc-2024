@@ -3,7 +3,7 @@ TestNumber=
 AnswerA=
 36
 AnswerB=
-[Empty]
+81
 Input=
 89010123
 78121874
@@ -14,16 +14,5 @@ Input=
 01329801
 10456732
 
-
-================================
-
-TestNumber=
-2
-AnswerA=
-[Empty]
-AnswerB=
-[Empty]
-Input=
-[Empty]
 
 ================================

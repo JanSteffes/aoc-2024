@@ -1,7 +1,5 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
-using Newtonsoft.Json;
-using System.Collections.Concurrent;
 using System.Drawing;
 
 namespace aoc_2024.Solutions
@@ -11,14 +9,15 @@ namespace aoc_2024.Solutions
         public string RunPartA(string inputData)
         {
             var map = new TopographicMap(inputData, 9, 1, 0);
-            var maxValuesToReach = map.CalculateTrailheadScoreSum();
-            //JsonConvert.SerializeObject(map);
-            return maxValuesToReach.ToString();
+            var maxValuesReachable = map.CalculateTrailheadScoreSum();
+            return maxValuesReachable.ToString();
         }
 
         public string RunPartB(string inputData)
         {
-            throw new NotImplementedException();
+            var map = new TopographicMap(inputData, 9, 1, 0);
+            var maxValuesReachable = map.CalculateTrailheadScoreSum(true);
+            return maxValuesReachable.ToString();
         }
     }
 
@@ -37,27 +36,59 @@ namespace aoc_2024.Solutions
             StartPointValue = startPointValue.ToString()[0];
         }
 
-        public int CalculateTrailheadScoreSum()
+        public int CalculateTrailheadScoreSum(bool ratingCalculation = false)
         {
-            var gridSerialized = JsonConvert.SerializeObject(Grid);
             var startingPoints = GetStartingPoints();
-            startingPoints = startingPoints.OrderByDescending(p => p.Y).ThenBy(p => p.X).ToList();
-            var trailHeadScores = new ConcurrentBag<int>();
-            //Parallel.ForEach(startingPoints, startingPoint =>
-            //{
-            foreach (var startingPoint in startingPoints)
+            // start with topleft to topRight and then down
+            startingPoints = [.. startingPoints.OrderByDescending(p => p.Y).ThenBy(p => p.X)];
+            var trailCountSum = 0;
+            var allTrails = new HashSet<string>();
+            foreach (var startinPoint in startingPoints)
             {
-                var trailHeadScore = DiscoverTrailScore(startingPoint);
-                trailHeadScores.Add(trailHeadScore);
-                Console.WriteLine($"Found {trailHeadScore} valid paths. Press key for next run.");
-                Console.ReadLine();
+                DiscoverTrails(startinPoint, allTrails);
+                var trailScore = ratingCalculation ? allTrails.Count : allTrails.Select(a => a.Split("->").Last()).Distinct().Count();
+                trailCountSum += trailScore;
+                allTrails = [];
             }
-            //});
-            return trailHeadScores.Sum();
+            return trailCountSum;
         }
 
-        private void PrintMap(List<Point> points)
+        private void DiscoverTrails(Point startingPoint, HashSet<string> allTrails)
         {
+            //PrintMap([startingPoint]);
+            DiscoverTrails(startingPoint, [], allTrails);
+        }
+
+        private void DiscoverTrails(Point currentPoint, List<Point> currentTrailPoints, HashSet<string> allTrails)
+        {
+            currentTrailPoints.Add(currentPoint);
+            //PrintMap(currentTrailPoints);
+            var pointValue = GetValueAtPos(currentPoint);
+            if (pointValue == MaxValueToReach)
+            {
+                var fullTrailPath = new Trail(currentTrailPoints).TrailPath();
+                if (allTrails.Add(fullTrailPath))
+                {
+                    return;
+                }
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Trail already discovered: {fullTrailPath}");
+                return;
+            }
+            var pointsAround = GetValidPointsAroundPoint(currentPoint).Where(p => GetValueAtPos(p) == pointValue + 1).ToList();
+            foreach (var point in pointsAround)
+            {
+                DiscoverTrails(point, new List<Point>(currentTrailPoints), allTrails);
+            }
+        }
+
+
+#pragma warning disable IDE0051 // Remove unused private members
+        private void PrintMap(List<Point> points)
+#pragma warning restore IDE0051 // Remove unused private members
+        {
+            //var sleepTime = 300;
+            //Thread.Sleep(sleepTime);
             for (var y = Grid.Length - 1; y >= 0; y--)
             {
                 for (var x = 0; x < Grid.Length; x++)
@@ -89,34 +120,6 @@ namespace aoc_2024.Solutions
                 return ConsoleColor.Blue;
             }
             return ConsoleColor.White;
-        }
-
-        private int DiscoverTrailScore(Point startingPoint, List<Point>? points = null)
-        {
-            Thread.Sleep(500);
-            points ??= [];
-            if (!points.Contains(startingPoint))
-            {
-                points.Add(startingPoint);
-                PrintMap(points);
-            }
-            var currentPointValue = GetValueAtPos(startingPoint);
-            if (currentPointValue == MaxValueToReach)
-            {
-                Console.WriteLine("Found another valid path. Press any key to continue.");
-                Console.Read();
-                return 1;
-            }
-            var pointsAroundStartingPoint = GetValidPointsAroundPoint(startingPoint);
-            var sum = 0;
-            foreach (var point in pointsAroundStartingPoint)
-            {
-                if (GetValueAtPos(point) == GetValueAtPos(startingPoint) + 1)
-                {
-                    sum += DiscoverTrailScore(point, points);
-                }
-            }
-            return sum;
         }
 
         private char GetValueAtPos(Point startingPoint)
@@ -159,6 +162,22 @@ namespace aoc_2024.Solutions
                 }
             }
             return startingPoints;
+        }
+
+
+    }
+
+    class Trail
+    {
+        public List<Point> TrailPoints { get; set; }
+        public Trail(List<Point> currentTrailPoints)
+        {
+            TrailPoints = currentTrailPoints;
+        }
+
+        public string TrailPath()
+        {
+            return string.Join("->", TrailPoints.Select(p => $"{p.X}|{p.Y}"));
         }
 
 
