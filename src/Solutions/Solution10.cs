@@ -82,29 +82,6 @@ namespace aoc_2024.Solutions
             }
         }
 
-
-#pragma warning disable IDE0051 // Remove unused private members
-        private void PrintMap(List<Point> points)
-#pragma warning restore IDE0051 // Remove unused private members
-        {
-            //var sleepTime = 300;
-            //Thread.Sleep(sleepTime);
-            for (var y = Grid.Length - 1; y >= 0; y--)
-            {
-                for (var x = 0; x < Grid.Length; x++)
-                {
-                    var currentPoint = new Point(x, y);
-                    Console.ForegroundColor = GetColorForPoint(currentPoint, points);
-                    Console.Write(GetValueAtPos(currentPoint));
-                }
-                Console.WriteLine();
-            }
-            for (var i = 0; i < 6; i++)
-            {
-                Console.WriteLine(Environment.NewLine);
-            }
-        }
-
         private ConsoleColor GetColorForPoint(Point currentPoint, List<Point> points)
         {
             if (points.Any(p => p.Equals(currentPoint)))
@@ -120,11 +97,6 @@ namespace aoc_2024.Solutions
                 return ConsoleColor.Blue;
             }
             return ConsoleColor.White;
-        }
-
-        private char GetValueAtPos(Point startingPoint)
-        {
-            return Grid[startingPoint.X][startingPoint.Y];
         }
 
         private List<Point> GetValidPointsAroundPoint(Point startingPoint)
