@@ -1,5 +1,6 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
+using System.Diagnostics;
 using System.Drawing;
 
 namespace aoc_2024.Solutions
@@ -16,31 +17,13 @@ namespace aoc_2024.Solutions
 
         }
 
-        private Dictionary<Point, ConsoleColor>? GetColorsForPointsInRegions(Dictionary<char, List<Region>> regions)
-        {
-            var resultDict = new Dictionary<Point, ConsoleColor>();
-            ConsoleColor[] consoleColors = [.. Enum.GetValues<ConsoleColor>().Except([ConsoleColor.Black])];
-            foreach (var region in regions.Values.SelectMany(q => q))
-            {
-                var color = Random.Shared.GetItems(consoleColors, 1)[0];
-                consoleColors = consoleColors.Except([color]).ToArray();
-                if (consoleColors.Length == 0)
-                {
-                    consoleColors = [.. Enum.GetValues<ConsoleColor>().Except([ConsoleColor.Black])];
-                }
-                foreach (var point in region.Points)
-                {
-                    resultDict.Add(point, color);
-                }
-            }
-            return resultDict;
-        }
-
         public string RunPartB(string inputData)
         {
             var plantMap = new PlantMap(inputData);
             var regions = plantMap.GetRegions();
-            return regions.Sum(s => s.Value.Sum(r => r.CalculateFencePriceWithPerimeter())).ToString();
+            //var calculationResults = regions.Values.SelectMany(v => v).Sum(r => r.CalculateFencePriceWithSidesCount());
+            //return calculationResults.ToString();
+            return regions.Sum(s => s.Value.Sum(r => r.CalculateFencePriceWithSidesCount())).ToString();
         }
     }
 
@@ -124,7 +107,7 @@ namespace aoc_2024.Solutions
 
         public bool ContainsAnyPoint(List<Point> pointsAroundChar)
         {
-            return pointsAroundChar.Intersect(Points).Count() > 0;
+            return pointsAroundChar.Intersect(Points).Any();
         }
 
         public void IncludeRegions(IEnumerable<Region> regions)
@@ -153,8 +136,9 @@ namespace aoc_2024.Solutions
         public int CalculateFencePriceWithSidesCount()
         {
             var areaValue = GetAreaValue();
-            var perimeter = GetSidesCount();
-            return areaValue * perimeter;
+            var sides = GetSidesCount();
+            Debug.WriteLine($"{sides} sides could for group {Char}");
+            return areaValue * sides;
         }
 
         private int GetAreaValue()
@@ -169,7 +153,95 @@ namespace aoc_2024.Solutions
 
         private int GetSidesCount()
         {
-            throw new NotImplementedException();
+            var cornerSum = Points.Sum(GetCorners);
+            return cornerSum;
+        }
+
+        private int GetCorners(Point point)
+        {
+            var corners = 0;
+            var containedPoints = GetContainedPoints(point.GetNamedDirectPointsAround());
+
+
+            if (IsUpperLeftCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsUpperRightCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsLowerLeftCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsLowerRightCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsUpperLeftInnerCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (isUpperRightInnerCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsLowerLeftInnerCorner(containedPoints))
+            {
+                corners++;
+            }
+            if (IsLowerRightInnerCorner(containedPoints))
+            {
+                corners++;
+            }
+
+            return corners;
+
+            (bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) GetContainedPoints((Point Left, Point Top, Point Right, Point Bottom) value)
+            {
+                return (Points.Contains(value.Left), Points.Contains(value.Top), Points.Contains(value.Right), Points.Contains(value.Bottom));
+            }
+
+            bool IsUpperLeftCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return !containedPoints.containsLeft && !containedPoints.containsTop;
+            }
+
+            bool IsUpperRightCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return !containedPoints.containsTop && !containedPoints.containsRight;
+            }
+
+            bool IsLowerLeftCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return !containedPoints.containsLeft && !containedPoints.containsBottom;
+            }
+
+            bool IsLowerRightCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return !containedPoints.containsRight && !containedPoints.containsBottom;
+            }
+
+            bool IsUpperLeftInnerCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return containedPoints.containsLeft && containedPoints.containsTop && !Points.Contains(point.NewPointFromVector(-1, 1));
+            }
+
+            bool isUpperRightInnerCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return containedPoints.containsTop && containedPoints.containsRight && !Points.Contains(point.NewPointFromVector(1, 1));
+            }
+
+            bool IsLowerLeftInnerCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return containedPoints.containsLeft && containedPoints.containsBottom && !Points.Contains(point.NewPointFromVector(-1, -1));
+            }
+
+            bool IsLowerRightInnerCorner((bool containsLeft, bool containsTop, bool containsRight, bool containsBottom) containedPoints)
+            {
+                return containedPoints.containsRight && containedPoints.containsBottom && !Points.Contains(point.NewPointFromVector(1, -1));
+            }
         }
     }
 }
