@@ -3,7 +3,7 @@ TestNumber=
 AnswerA=
 480
 AnswerB=
-[Empty]
+875318608908
 Input=
 Button A: X+94, Y+34
 Button B: X+22, Y+67
@@ -21,16 +21,5 @@ Button A: X+69, Y+23
 Button B: X+27, Y+71
 Prize: X=18641, Y=10279
 
-
-================================
-
-TestNumber=
-2
-AnswerA=
-[Empty]
-AnswerB=
-[Empty]
-Input=
-[Empty]
 
 ================================

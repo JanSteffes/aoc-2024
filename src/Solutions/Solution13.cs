@@ -8,22 +8,37 @@ namespace aoc_2024.Solutions
     {
         public string RunPartA(string inputData)
         {
-            var lines = ParseUtils.ParseIntoLines(inputData);
-            var sum = 0;
-            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex += 3)
-            {
-                var currentLines = lines.Skip(lineIndex).Take(3).ToList();
-                var buttonA = ClawMaschineButton.FromLine(currentLines[0]);
-                var buttonB = ClawMaschineButton.FromLine(currentLines[1]);
-                var price = Price.FromLine(currentLines[2]);
-                sum += new ClawMaschine(buttonA, buttonB, price).CalculateMinimumNeededTokens();
-            }
-            return sum.ToString();
+            var clawMaschines = GetMaschines(inputData);
+            var clawMaschinesWithResults = clawMaschines.Select(c => (Maschine: c, Tokens: c.CalculateMinimumNeededTokens())).ToList();
+            return clawMaschinesWithResults.Sum(s => s.Tokens).ToString();
         }
 
         public string RunPartB(string inputData)
         {
-            throw new NotImplementedException();
+            var incrementValue = 10000000000000;
+            var clawMaschines = GetMaschines(inputData);
+            foreach (var clawMaschine in clawMaschines)
+            {
+                clawMaschine.Price = new Price(clawMaschine.Price.X + incrementValue, clawMaschine.Price.Y + incrementValue);
+            }
+            var clawMaschinesWithResults = clawMaschines.Select(c => (Maschine: c, Tokens: c.CalculateMinimumNeededTokens())).ToList();
+            return clawMaschinesWithResults.Sum(s => s.Tokens).ToString();
+        }
+
+        private static List<ClawMaschine> GetMaschines(string inputData)
+        {
+            var lines = ParseUtils.ParseIntoLines(inputData);
+            var clawMaschines = new List<ClawMaschine>();
+            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex += 3)
+            {
+                var currentLines = lines.Skip(lineIndex).Take(3).ToList();
+                var buttonA = ClawMaschineButton.FromLine(currentLines[0], 3);
+                var buttonB = ClawMaschineButton.FromLine(currentLines[1], 1);
+                var price = Price.FromLine(currentLines[2]);
+                clawMaschines.Add(new ClawMaschine(buttonA, buttonB, price));
+            }
+
+            return clawMaschines;
         }
     }
 
@@ -47,17 +62,22 @@ namespace aoc_2024.Solutions
             Price = price;
         }
 
-        public int CalculateMinimumNeededTokens()
+        public long CalculateMinimumNeededTokens()
         {
             var a = ((Price.X * ButtonB.IncrementY) - (Price.Y * ButtonB.IncrementX)) / ((ButtonA.IncrementX * ButtonB.IncrementY) - (ButtonA.IncrementY * ButtonB.IncrementX));
             var b = ((ButtonA.IncrementX * Price.Y) - (ButtonA.IncrementY * Price.X)) / ((ButtonA.IncrementX * ButtonB.IncrementY) - (ButtonA.IncrementY * ButtonB.IncrementX));
-            return (a * ButtonA.Cost + b * ButtonB.Cost);
+            // check if calculation possible
+            if (((a * ButtonA.IncrementX) + (b * ButtonB.IncrementX)) == Price.X &&
+                ((a * ButtonA.IncrementY) + (b * ButtonB.IncrementY)) == Price.Y)
+            {
+                return (a * ButtonA.Cost) + (b * ButtonB.Cost);
+            }
+            return 0;
         }
     }
 
     class ClawMaschineButton
     {
-        //private const string IncrementRegex = "(?:X\\+)(<IncrementX>\\d+).*(?:Y\\+)(<IncrementY>\\d+)";
         private const string IncrementRegex = "(?:X\\+)(?<X>\\d+).*(?:Y\\+)(?<Y>\\d+)";
 
         public int IncrementX { get; private set; }
@@ -72,9 +92,8 @@ namespace aoc_2024.Solutions
             Cost = cost;
         }
 
-        public static ClawMaschineButton FromLine(string line)
+        public static ClawMaschineButton FromLine(string line, int cost)
         {
-            var cost = line.Contains("A:") ? 1 : 3;
             var (incrementX, incrementY) = GetIncrements(line, IncrementRegex);
             return new ClawMaschineButton(incrementX, incrementY, cost);
         }
@@ -91,13 +110,13 @@ namespace aoc_2024.Solutions
 
     class Price
     {
-        private const string PriceCoordinatesRegex = "(?:X\\=)(<X>\\d+).*(?:Y\\=)(<Y>\\d+)";
+        private const string PriceCoordinatesRegex = "(?:X\\=)(?<X>\\d+).*(?:Y\\=)(?<Y>\\d+)";
 
-        public int X { get; set; }
+        public long X { get; set; }
 
-        public int Y { get; set; }
+        public long Y { get; set; }
 
-        public Price(int x, int y)
+        public Price(long x, long y)
         {
             X = x;
             Y = y;
@@ -107,8 +126,8 @@ namespace aoc_2024.Solutions
         {
             var regexToParse = new Regex(PriceCoordinatesRegex);
             var regexResult = regexToParse.Match(line);
-            var x = int.Parse(regexResult.Groups["IncrementX"].Value);
-            var y = int.Parse(regexResult.Groups["IncrementY"].Value);
+            var x = long.Parse(regexResult.Groups["X"].Value);
+            var y = long.Parse(regexResult.Groups["Y"].Value);
             return new Price(x, y);
         }
     }

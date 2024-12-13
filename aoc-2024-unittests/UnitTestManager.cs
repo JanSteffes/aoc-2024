@@ -8,6 +8,7 @@ namespace aoc_2024_unittests
     {
         private readonly ILogger logger;
         private readonly int[] availableTests;
+        private static readonly string[] keywords = ["TestNumber=", "AnswerA=", "AnswerB=", "Input="];
 
         public UnitTestManager(ILogger logger)
         {
@@ -49,7 +50,7 @@ namespace aoc_2024_unittests
                     continue;
                 }
 
-                if (line.Contains('='))
+                if (keywords.Any(line.Contains))
                 {
                     string[] parts = line.Split('=', 2);
                     currentKey = parts[0].Trim();

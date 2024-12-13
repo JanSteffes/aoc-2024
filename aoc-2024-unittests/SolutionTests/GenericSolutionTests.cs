@@ -74,8 +74,8 @@ namespace aoc_2024_unittests.SolutionTests
         //[TestCase("11", 1, "B", "218279375708592", 1)] // skip for now, takes too long
         [TestCase("12", 1, "A", "1344578", 1)]
         [TestCase("12", 1, "B", "814302", 1)]
-        [TestCase("13", 1, "A", "", 1)]
-        [TestCase("13", 1, "B", "", 1)]
+        [TestCase("13", 1, "A", "31623", 1)]
+        [TestCase("13", 1, "B", "93209116744825", 1)]
         public void InputCaseTests(int day, int testNumber, string part, string expectedResult, int maxSecondsToRun)
         {
             // arrange
