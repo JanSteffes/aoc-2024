@@ -15,7 +15,7 @@ namespace aoc_2024.Solutions.Helper
 
         public MapBase(string inputData)
         {
-            ValuePointCategories = GetValuePointCharCategories();
+            ValuePointCategories = GetValuePointCharCategoriesInternal();
             Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData);
             MaxY = MaxX = Grid.Length;
         }
@@ -83,7 +83,18 @@ namespace aoc_2024.Solutions.Helper
             return position.Y < MaxY && position.X < MaxX && position.Y >= 0 && position.X >= 0;
         }
 
-        protected virtual List<ValuePointCategory<char>> GetValuePointCharCategories()
+        public List<ValuePointCategory<char>> GetValuePointCategories()
+        {
+            return ValuePointCategories;
+        }
+
+        protected ValuePointCategory<char> GetValuePointCategoryByName(string name)
+        {
+            return ValuePointCategories.First(v => v.Name == name);
+        }
+
+
+        protected virtual List<ValuePointCategory<char>> GetValuePointCharCategoriesInternal()
         {
             return [];
         }
@@ -109,6 +120,11 @@ namespace aoc_2024.Solutions.Helper
             return CategoryValues.Contains(character);
         }
 
+        public bool ContainsPoint(Point point)
+        {
+            return ValuePoints.Any(v => v.Coordinate.Equals(point));
+        }
+
         public void Add(ValuePoint<T> value)
         {
             ValuePoints.Add(value);
@@ -119,12 +135,17 @@ namespace aoc_2024.Solutions.Helper
     {
         public T Value { get; set; }
 
-        public Point Coordinate { get; private set; }
+        public Point Coordinate { get; set; }
 
         public ValuePoint(T value, Point coordinate)
         {
             Value = value;
             Coordinate = coordinate;
+        }
+
+        public override string ToString()
+        {
+            return $"X: {Coordinate.X}/Y: {Coordinate.Y}: {Value}";
         }
 
     }

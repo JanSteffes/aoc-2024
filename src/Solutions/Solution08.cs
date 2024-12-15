@@ -99,7 +99,7 @@ namespace aoc_2024.Solutions
 
         }
 
-        protected override List<ValuePointCategory<char>> GetValuePointCharCategories()
+        protected override List<ValuePointCategory<char>> GetValuePointCharCategoriesInternal()
         {
             return [new ValuePointCategory<char>("antenna", GetValuePointChars())];
         }

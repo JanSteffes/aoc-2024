@@ -36,6 +36,8 @@ namespace aoc_2024_unittests.SolutionTests
         //[TestCase("14", 1, "B")] // not really good for testing, leave that
         [TestCase("15", 1, "A")]
         [TestCase("15 ", 1, "B")]
+        [TestCase("15", 2, "A")]
+        [TestCase("15", 2, "B")]
         public void TestCaseTests(int day, int testNumber, string part)
         {
             // arrange

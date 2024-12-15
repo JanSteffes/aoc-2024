@@ -104,7 +104,7 @@ namespace aoc_2024.Solutions
             InitGuardPosition(Grid);
         }
 
-        protected override List<ValuePointCategory<char>> GetValuePointCharCategories()
+        protected override List<ValuePointCategory<char>> GetValuePointCharCategoriesInternal()
         {
             return [new ValuePointCategory<char>("Obstacles", obstacleChars)];
         }
