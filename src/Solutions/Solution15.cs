@@ -13,14 +13,20 @@ namespace aoc_2024.Solutions
             ParseLines(inputData, out List<string> mapLines, out List<string> moveLines);
 
             var map = new WarehouseMap(string.Join(Environment.NewLine, mapLines));
-
-            //PrintColoredMap(map);
+            var isTest = false;
+            if (isTest)
+            {
+                PrintColoredMap(map);
+            }
 
             var moveSets = ParseDirections(string.Join(string.Empty, moveLines));
             foreach (var move in moveSets)
             {
                 map.TryMoveWorker(move);
-                //PrintColoredMap(map);
+                if (isTest)
+                {
+                    PrintColoredMap(map);
+                }
             }
 
             var checkSum = map.CalculateCheckSum();
@@ -30,19 +36,28 @@ namespace aoc_2024.Solutions
 
         public string RunPartB(string inputData)
         {
+            var isTest = false;
             ParseLines(inputData, out List<string> mapLines, out List<string> moveLines);
 
             var mapInputString = string.Join(Environment.NewLine, mapLines);
             mapInputString = mapInputString.Replace("#", "##").Replace("O", "[]").Replace(".", "..").Replace("@", "@.");
             var map = new WarehouseScaledMap(mapInputString);
 
-            PrintColoredMap(map);
+            if (isTest)
+            {
+                PrintColoredMap(map);
+            }
 
             var moveSets = ParseDirections(string.Join(string.Empty, moveLines));
+            var count = 0;
             foreach (var move in moveSets)
             {
                 map.TryMoveWorker(move);
-                PrintColoredMap(map);
+                if (isTest)
+                {
+                    PrintColoredMap(map, move, count);
+                }
+                count++;
             }
 
             var checkSum = map.CalculateCheckSum();
@@ -72,11 +87,13 @@ namespace aoc_2024.Solutions
                 }
             }
         }
-        private void PrintColoredMap(MapBase map)
+        private void PrintColoredMap(MapBase map, Direction? move = null, int? count = 0)
         {
             Thread.Sleep(500);
+            Console.WriteLine(move?.ToString() + count?.ToString());
             var colorsForCategories = GetColorsForPointsInCategories(map.GetValuePointCategories());
             map.PrintMap(colorsForCategories);
+
         }
         private Dictionary<Point, ConsoleColor> GetColorsForPointsInCategories(List<ValuePointCategory<char>> list)
         {
@@ -110,44 +127,103 @@ namespace aoc_2024.Solutions
 
         protected override bool CanMoveMoveablePoint(ValuePointCategory<char> unmoveableObject, ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction move)
         {
-            var nextPos = GetNextPos(moveableObjectPos, move);
-            var secondNextPos = GetSecondPart(moveableObjects, moveableObjectPos, move);
-            if (unmoveableObject.ContainsPoint(nextPos) || unmoveableObject.ContainsPoint(secondNextPos))
+            var isLeftPos = GetValueAtPos(moveableObjectPos) == '[';
+            var leftPos = isLeftPos ? moveableObjectPos : moveableObjectPos.NewPointFromVector(-1, 0);
+            var rightPos = isLeftPos ? moveableObjectPos.NewPointFromVector(1, 0) : moveableObjectPos;
+            switch (move)
             {
-                return false;
+                case Direction.Left:
+                    // check if left can move left
+                    var leftNewHorizontalPos = leftPos.NewPointFromVector(-1, 0);
+                    return CanMove(leftNewHorizontalPos);
+                case Direction.Right:
+                    // check if right can move right
+                    var rightNewHorizontalPos = rightPos.NewPointFromVector(1, 0);
+                    return CanMove(rightNewHorizontalPos);
+                case Direction.Up:
+                    return CanMoveVerticaly(1);
+                case Direction.Down:
+                    return CanMoveVerticaly(-1);
+                default:
+                    throw new NotImplementedException();
             }
-            if (moveableObjects.ContainsPoint(nextPos) || moveableObjects.ContainsPoint(secondNextPos))
-            {
-                return new Point[] { nextPos, secondNextPos }.Where(moveableObjects.ContainsPoint).All(mp => CanMoveMoveablePoint(unmoveableObject, moveableObjects, mp, move));
-            }
-            return true;
-        }
 
-        private static Point GetSecondPart(ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction move)
-        {
-            var firstChar = moveableObjects.GetValueByPoint(moveableObjectPos);
-            var secondNextPos = firstChar switch
+            bool CanMoveVerticaly(int increment)
             {
-                '[' => GetNextPos(moveableObjectPos.NewPointFromVector(1, 0), move),
-                ']' => GetNextPos(moveableObjectPos.NewPointFromVector(-1, 0), move),
-                _ => throw new ArgumentException($"Should be moveable but is not? At '{moveableObjectPos}' during move {move}!"),
-            };
-            return secondNextPos;
+                var leftNewVerticalPos = leftPos.NewPointFromVector(0, increment);
+                var rightNewVerticalPos = rightPos.NewPointFromVector(0, increment);
+                // check if both can move up/down
+                return CanMove(leftNewVerticalPos) && CanMove(rightNewVerticalPos);
+            }
+
+            bool CanMove(Point newPos)
+            {
+                if (unmoveableObject.ContainsPoint(newPos))
+                {
+                    return false;
+                }
+                if (moveableObjects.ContainsPoint(newPos))
+                {
+                    return CanMoveMoveablePoint(unmoveableObject, moveableObjects, newPos, move);
+                }
+                return true;
+            }
         }
 
         protected override void MoveMoveablePoint(ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction direction)
         {
-            var nextPos = GetNextPos(moveableObjectPos, direction);
-            var secondPos = GetSecondPart(moveableObjects, moveableObjectPos, direction);
-            if (moveableObjects.ContainsPoint(nextPos) || moveableObjects.ContainsPoint(secondPos))
+            var isLeftPos = ValueAtPosIsLeftPart(moveableObjectPos);
+            var leftPos = isLeftPos ? moveableObjectPos : moveableObjectPos.NewPointFromVector(-1, 0);
+            var rightPos = isLeftPos ? moveableObjectPos.NewPointFromVector(1, 0) : moveableObjectPos;
+
+            var leftToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(leftPos));
+            var rightToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(rightPos));
+            var newLeftPos = GetNextPos(leftPos, direction);
+            var newRightPos = GetNextPos(rightPos, direction);
+            switch (direction)
             {
-                MoveMoveablePoint(moveableObjects, moveableObjectPos, direction);
+                case Direction.Left:
+                    if (moveableObjects.ContainsPoint(newLeftPos))
+                    {
+                        MoveMoveablePoint(moveableObjects, newLeftPos, direction);
+                    }
+                    MoveCurrent(leftToMove, newLeftPos);
+                    MoveCurrent(rightToMove, newRightPos);
+                    break;
+                case Direction.Right:
+                    if (moveableObjects.ContainsPoint(newRightPos))
+                    {
+                        MoveMoveablePoint(moveableObjects, newRightPos, direction);
+                    }
+                    MoveCurrent(rightToMove, newRightPos);
+                    MoveCurrent(leftToMove, newLeftPos);
+                    break;
+                case Direction.Up:
+                case Direction.Down:
+                    if (moveableObjects.ContainsPoint(newLeftPos) && ValueAtPosIsLeftPart(newLeftPos))
+                    {
+                        MoveMoveablePoint(moveableObjects, newLeftPos, direction);
+                    }
+                    if (moveableObjects.ContainsPoint(newLeftPos) && !ValueAtPosIsLeftPart(newLeftPos))
+                    {
+                        MoveMoveablePoint(moveableObjects, newLeftPos, direction);
+                    }
+                    if (moveableObjects.ContainsPoint(newRightPos) && ValueAtPosIsLeftPart(newRightPos))
+                    {
+                        MoveMoveablePoint(moveableObjects, newRightPos, direction);
+                    }
+                    MoveCurrent(leftToMove, newLeftPos);
+                    MoveCurrent(rightToMove, newRightPos);
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
 
-            var currentToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(moveableObjectPos));
-            MoveCurrent(currentToMove, nextPos);
-            var secondToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(secondPos));
-            MoveCurrent(secondToMove, secondPos);
+
+            bool ValueAtPosIsLeftPart(Point position)
+            {
+                return GetValueAtPos(position) == '[';
+            }
         }
 
         protected override List<ValuePoint<char>> GetPointsForChecksum()
@@ -155,7 +231,8 @@ namespace aoc_2024.Solutions
             // foreach moveable, get closest to edge
             // for y its the same, but x might be one less
             // just get all where char = [
-            return GetValuePointCategoryByName(MoveableCategoryName).ValuePoints.Where(p => p.Value == '[').ToList();
+            var pointsForChecksum = GetValuePointCategoryByName(MoveableCategoryName).ValuePoints.Where(p => p.Value == '[').ToList();
+            return pointsForChecksum;
         }
     }
 
@@ -267,7 +344,7 @@ namespace aoc_2024.Solutions
         public int CalculateCheckSum()
         {
             var points = GetPointsForChecksum();
-            return points.Sum(p => p.Coordinate.X + ((Grid.Length - 1 - p.Coordinate.Y) * 100));
+            return points.Sum(p => p.Coordinate.X + ((MaxY - 1 - p.Coordinate.Y) * 100));
         }
 
         protected virtual List<ValuePoint<char>> GetPointsForChecksum()

@@ -7,9 +7,9 @@ namespace aoc_2024.Solutions.Helper
     {
         protected char[][] Grid { get; private set; }
 
-        private int MaxX { get; set; }
+        protected int MaxX { get; set; }
 
-        private int MaxY { get; set; }
+        protected int MaxY { get; set; }
 
         protected List<ValuePointCategory<char>> ValuePointCategories { get; set; }
 
@@ -17,26 +17,31 @@ namespace aoc_2024.Solutions.Helper
         {
             ValuePointCategories = GetValuePointCharCategoriesInternal();
             Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData);
-            MaxY = MaxX = Grid.Length;
+            MaxX = Grid.Length;
+            MaxY = Grid[0].Length;
         }
 
         private char[][] BuildCoordinateSystemFromStringAndFillValuePoints(string inputData)
         {
-            var lines = ParseUtils.ParseIntoLines(inputData);
-            var length = lines.Length;
-            var coordinateSystem = new char[length][];
-            for (int row = 0; row < length; row++)
+            var lines = ParseUtils.ParseIntoLines(inputData).Reverse().ToArray();
+            var height = lines.Length;
+            var coordinateSystem = new char[lines.First().Length][];
+            for (int y = 0; y < height; y++)
             {
-                coordinateSystem[row] = new char[length];
-                for (int column = 0; column < length; column++)
+                var currentRow = lines[y];
+                for (int x = 0; x < currentRow.Length; x++)
                 {
-                    var charToSet = lines[length - 1 - column][row];
+                    if (coordinateSystem[x] == null)
+                    {
+                        coordinateSystem[x] = new char[height];
+                    }
+                    var charToSet = currentRow[x];
                     var category = ValuePointCategories.FirstOrDefault(v => v.ContainsValue(charToSet));
                     if (category != default)
                     {
-                        category.Add(new ValuePoint<char>(charToSet, new Point(row, column)));
+                        category.Add(new ValuePoint<char>(charToSet, new Point(x, y)));
                     }
-                    coordinateSystem[row][column] = charToSet;
+                    coordinateSystem[x][y] = charToSet;
                 }
             }
             return coordinateSystem;
@@ -44,23 +49,28 @@ namespace aoc_2024.Solutions.Helper
 
         public void PrintMap(Dictionary<Point, ConsoleColor>? colorsForPoints = null)
         {
-            for (var y = Grid.Length - 1; y >= 0; y--)
+            for (var y = MaxY - 1; y >= 0; y--)
             {
-                var currentRowLength = Grid[y].Length;
-                for (var x = 0; x < currentRowLength; x++)
+                for (var x = 0; x < MaxX; x++)
                 {
-                    var currentPoint = new Point(x, y);
-                    var prevColor = Console.ForegroundColor;
-                    if (colorsForPoints?.TryGetValue(currentPoint, out ConsoleColor color) ?? false)
-                    {
-                        Console.ForegroundColor = color;
-                    }
-                    Console.Write(GetValueAtPos(currentPoint));
-                    Console.ForegroundColor = prevColor;
+                    PrintColoredPoint(colorsForPoints, x, y);
                 }
                 Console.WriteLine();
             }
         }
+
+        private void PrintColoredPoint(Dictionary<Point, ConsoleColor>? colorsForPoints, int x, int y)
+        {
+            var currentPoint = new Point(x, y);
+            var prevColor = Console.ForegroundColor;
+            if (colorsForPoints?.TryGetValue(currentPoint, out ConsoleColor color) ?? false)
+            {
+                Console.ForegroundColor = color;
+            }
+            Console.Write(GetValueAtPos(currentPoint));
+            Console.ForegroundColor = prevColor;
+        }
+
         public char GetValueAtPos(Point startingPoint)
         {
             return GetValueAtPos(startingPoint.X, startingPoint.Y);
