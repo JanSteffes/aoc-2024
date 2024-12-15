@@ -1,7 +1,6 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 
@@ -94,7 +93,7 @@ namespace aoc_2024.Solutions
         // TODO get those from Directionenum
         private readonly char[] faceDirectionChars = ['^', '>', '<', 'v'];
 
-        private readonly char[] obstacleChars = ['#'];
+        private readonly char[] obstacleChars = ['#', '0'];
 
         private Point GuardPositionOnMap { get; set; }
 
@@ -105,15 +104,16 @@ namespace aoc_2024.Solutions
             InitGuardPosition(Grid);
         }
 
-        protected override ReadOnlyCollection<char> GetValuePointChars()
+        protected override List<ValuePointCategory<char>> GetValuePointCharCategories()
         {
-            return new ReadOnlyCollection<char>(obstacleChars);
+            return [new ValuePointCategory<char>("Obstacles", obstacleChars)];
         }
 
         public Point MoveGuard()
         {
             var newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
-            while (ValuePoints.Any(obstaclePosition => obstaclePosition.Coordinate.Equals(newPosition)))
+            var categoryValuePoints = ValuePointCategories.First().ValuePoints;
+            while (categoryValuePoints.Any(obstaclePosition => obstaclePosition.Coordinate.Equals(newPosition)))
             {
                 GuardFaceDirection = GuardFaceDirection.TurnOnObstacle();
                 newPosition = GuardFaceDirection.GetNewPostion(GuardPositionOnMap);
@@ -145,14 +145,6 @@ namespace aoc_2024.Solutions
                 throw new ArgumentException("Could not get guardposition!");
             }
         }
-    }
-
-    enum Direction
-    {
-        Up = '^',
-        Down = 'v',
-        Left = '<',
-        Right = '>'
     }
 
     internal static class DirectionExtensions

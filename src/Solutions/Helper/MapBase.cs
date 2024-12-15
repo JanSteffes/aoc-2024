@@ -1,5 +1,4 @@
 ﻿using aoc_2024.SolutionUtils;
-using System.Collections.ObjectModel;
 using System.Drawing;
 
 namespace aoc_2024.Solutions.Helper
@@ -12,16 +11,16 @@ namespace aoc_2024.Solutions.Helper
 
         private int MaxY { get; set; }
 
-        protected List<ValuePoint<char>> ValuePoints { get; set; }
+        protected List<ValuePointCategory<char>> ValuePointCategories { get; set; }
 
         public MapBase(string inputData)
         {
-            ValuePoints = [];
-            Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData, GetValuePointChars());
+            ValuePointCategories = GetValuePointCharCategories();
+            Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData);
             MaxY = MaxX = Grid.Length;
         }
 
-        private char[][] BuildCoordinateSystemFromStringAndFillValuePoints(string inputData, ReadOnlyCollection<char>? obstacleChars)
+        private char[][] BuildCoordinateSystemFromStringAndFillValuePoints(string inputData)
         {
             var lines = ParseUtils.ParseIntoLines(inputData);
             var length = lines.Length;
@@ -32,9 +31,10 @@ namespace aoc_2024.Solutions.Helper
                 for (int column = 0; column < length; column++)
                 {
                     var charToSet = lines[length - 1 - column][row];
-                    if (obstacleChars?.Contains(charToSet) ?? false)
+                    var category = ValuePointCategories.FirstOrDefault(v => v.ContainsChar(charToSet));
+                    if (category != default)
                     {
-                        ValuePoints.Add(new ValuePoint<char>(charToSet, new Point(row, column)));
+                        category.Add(new ValuePoint<char>(charToSet, new Point(row, column)));
                     }
                     coordinateSystem[row][column] = charToSet;
                 }
@@ -71,7 +71,11 @@ namespace aoc_2024.Solutions.Helper
 
         public void AddValuePoint(ValuePoint<char> valuePoint)
         {
-            ValuePoints.Add(valuePoint);
+            var categoryToAdd = ValuePointCategories.FirstOrDefault(v => v.ContainsChar(valuePoint.Value));
+            if (categoryToAdd != default)
+            {
+                categoryToAdd.Add(valuePoint);
+            }
         }
 
         public bool IsInMap(Point position)
@@ -79,9 +83,35 @@ namespace aoc_2024.Solutions.Helper
             return position.Y < MaxY && position.X < MaxX && position.Y >= 0 && position.X >= 0;
         }
 
-        protected virtual ReadOnlyCollection<char>? GetValuePointChars()
+        protected virtual List<ValuePointCategory<char>> GetValuePointCharCategories()
         {
-            return default;
+            return [];
+        }
+    }
+
+    internal class ValuePointCategory<T>
+    {
+        public string Name { get; set; }
+
+        public char[] CategoryValues { get; set; }
+
+        public List<ValuePoint<T>> ValuePoints { get; set; }
+
+        public ValuePointCategory(string name, char[] categoryValues)
+        {
+            Name = name;
+            CategoryValues = categoryValues;
+            ValuePoints = [];
+        }
+
+        public bool ContainsChar(char character)
+        {
+            return CategoryValues.Contains(character);
+        }
+
+        public void Add(ValuePoint<T> value)
+        {
+            ValuePoints.Add(value);
         }
     }
 

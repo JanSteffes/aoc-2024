@@ -1,6 +1,5 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
-using System.Collections.ObjectModel;
 using System.Drawing;
 
 namespace aoc_2024.Solutions
@@ -100,19 +99,24 @@ namespace aoc_2024.Solutions
 
         }
 
-        protected override ReadOnlyCollection<char> GetValuePointChars()
+        protected override List<ValuePointCategory<char>> GetValuePointCharCategories()
+        {
+            return [new ValuePointCategory<char>("antenna", GetValuePointChars())];
+        }
+
+        private char[] GetValuePointChars()
         {
             var charsToCheckFor = new List<char>();
             var numberChars = Enumerable.Range('0', '9' + 1 - '0').ToList();
             var upperCaseLetters = Enumerable.Range('A', 'Z' + 1 - 'A').ToList();
             var lowerCaseLetters = Enumerable.Range('a', 'z' + 1 - 'a').ToList();
-            var concated = numberChars.Concat(upperCaseLetters).Concat(lowerCaseLetters).Select(v => (char)v).ToList();
-            return new ReadOnlyCollection<char>(concated);
+            var concated = numberChars.Concat(upperCaseLetters).Concat(lowerCaseLetters).Select(v => (char)v).ToArray();
+            return concated;
         }
 
         public IDictionary<char, List<Point>> GetAntennaPositionsByFrequency()
         {
-            return ValuePoints.GroupBy(g => g.Value).ToDictionary(g => g.Key, g => g.Select(v => v.Coordinate).ToList());
+            return ValuePointCategories.First().ValuePoints.GroupBy(g => g.Value).ToDictionary(g => g.Key, g => g.Select(v => v.Coordinate).ToList());
         }
     }
 }
