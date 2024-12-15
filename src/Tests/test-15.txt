@@ -23,7 +23,7 @@ TestNumber=
 AnswerA=
 10092
 AnswerB=
-[Empty]
+9021
 Input=
 ##########
 #..O..O.O#

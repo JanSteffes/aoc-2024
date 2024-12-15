@@ -10,7 +10,7 @@ namespace aoc_2024.Solutions
     {
         public string RunPartA(string inputData)
         {
-            ParseInputToMap(inputData, out List<string> mapLines, out List<string> moveLines);
+            ParseLines(inputData, out List<string> mapLines, out List<string> moveLines);
 
             var map = new WarehouseMap(string.Join(Environment.NewLine, mapLines));
 
@@ -30,9 +30,11 @@ namespace aoc_2024.Solutions
 
         public string RunPartB(string inputData)
         {
-            ParseInputToMap(inputData, out List<string> mapLines, out List<string> moveLines);
+            ParseLines(inputData, out List<string> mapLines, out List<string> moveLines);
 
-            var map = new WarehouseMap(string.Join(Environment.NewLine, mapLines));
+            var mapInputString = string.Join(Environment.NewLine, mapLines);
+            mapInputString = mapInputString.Replace("#", "##").Replace("O", "[]").Replace(".", "..").Replace("@", "@.");
+            var map = new WarehouseScaledMap(mapInputString);
 
             PrintColoredMap(map);
 
@@ -53,7 +55,7 @@ namespace aoc_2024.Solutions
             return moveset.Select(c => (Direction)Enum.ToObject(typeof(Direction), c)).ToList();
         }
 
-        private static void ParseInputToMap(string inputData, out List<string> mapLines, out List<string> moveLines)
+        private static void ParseLines(string inputData, out List<string> mapLines, out List<string> moveLines)
         {
             var lines = ParseUtils.ParseIntoLines(inputData);
             mapLines = [];
@@ -97,15 +99,76 @@ namespace aoc_2024.Solutions
         }
     }
 
+    class WarehouseScaledMap : WarehouseMap
+    {
+        private readonly char[] moveableObstacles = ['[', ']'];
+        protected override char[] MoveableObstacles { get => moveableObstacles; }
+
+        public WarehouseScaledMap(string inputData) : base(inputData)
+        {
+        }
+
+        protected override bool CanMoveMoveablePoint(ValuePointCategory<char> unmoveableObject, ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction move)
+        {
+            var nextPos = GetNextPos(moveableObjectPos, move);
+            var secondNextPos = GetSecondPart(moveableObjects, moveableObjectPos, move);
+            if (unmoveableObject.ContainsPoint(nextPos) || unmoveableObject.ContainsPoint(secondNextPos))
+            {
+                return false;
+            }
+            if (moveableObjects.ContainsPoint(nextPos) || moveableObjects.ContainsPoint(secondNextPos))
+            {
+                return new Point[] { nextPos, secondNextPos }.Where(moveableObjects.ContainsPoint).All(mp => CanMoveMoveablePoint(unmoveableObject, moveableObjects, mp, move));
+            }
+            return true;
+        }
+
+        private static Point GetSecondPart(ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction move)
+        {
+            var firstChar = moveableObjects.GetValueByPoint(moveableObjectPos);
+            var secondNextPos = firstChar switch
+            {
+                '[' => GetNextPos(moveableObjectPos.NewPointFromVector(1, 0), move),
+                ']' => GetNextPos(moveableObjectPos.NewPointFromVector(-1, 0), move),
+                _ => throw new ArgumentException($"Should be moveable but is not? At '{moveableObjectPos}' during move {move}!"),
+            };
+            return secondNextPos;
+        }
+
+        protected override void MoveMoveablePoint(ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction direction)
+        {
+            var nextPos = GetNextPos(moveableObjectPos, direction);
+            var secondPos = GetSecondPart(moveableObjects, moveableObjectPos, direction);
+            if (moveableObjects.ContainsPoint(nextPos) || moveableObjects.ContainsPoint(secondPos))
+            {
+                MoveMoveablePoint(moveableObjects, moveableObjectPos, direction);
+            }
+
+            var currentToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(moveableObjectPos));
+            MoveCurrent(currentToMove, nextPos);
+            var secondToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(secondPos));
+            MoveCurrent(secondToMove, secondPos);
+        }
+
+        protected override List<ValuePoint<char>> GetPointsForChecksum()
+        {
+            // foreach moveable, get closest to edge
+            // for y its the same, but x might be one less
+            // just get all where char = [
+            return GetValuePointCategoryByName(MoveableCategoryName).ValuePoints.Where(p => p.Value == '[').ToList();
+        }
+    }
+
 
     class WarehouseMap : MapBase
     {
-        private const string UnmoveableCategoryName = "Unmoveable";
-        private const string MoveableCategoryName = "Moveable";
-        private const string WorkerCategoryName = "Worker";
+        protected const string UnmoveableCategoryName = "Unmoveable";
+        protected const string MoveableCategoryName = "Moveable";
+        protected const string WorkerCategoryName = "Worker";
         private readonly char[] unmoveableObstacles = ['#'];
 
         private readonly char[] moveableObstacles = ['O'];
+        protected virtual char[] MoveableObstacles { get => moveableObstacles; }
 
         private readonly char[] workerChar = ['@'];
 
@@ -128,50 +191,51 @@ namespace aoc_2024.Solutions
             var moveableObjects = GetValuePointCategoryByName(MoveableCategoryName);
             if (moveableObjects.ContainsPoint(nextPos))
             {
-                if (MoveMoveablePoint(unmoveableObject, moveableObjects, nextPos, move))
+                if (CanMoveMoveablePoint(unmoveableObject, moveableObjects, nextPos, move))
                 {
+                    MoveMoveablePoint(moveableObjects, nextPos, move);
                     MoveWorkerToNewPos(workerValuePoints, nextPos);
                 }
                 return;
             }
             // if newPos is free, move
             MoveWorkerToNewPos(workerValuePoints, nextPos);
-
         }
 
-        private bool MoveMoveablePoint(ValuePointCategory<char> unmoveableObjects, ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction direction)
+        protected virtual bool CanMoveMoveablePoint(ValuePointCategory<char> unmoveableObject, ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction move)
         {
-            var nextPos = GetNextPos(moveableObjectPos, direction);
-            if (unmoveableObjects.ContainsPoint(nextPos))
+            var nextPos = GetNextPos(moveableObjectPos, move);
+            if (unmoveableObject.ContainsPoint(nextPos))
             {
                 return false;
             }
             if (moveableObjects.ContainsPoint(nextPos))
             {
-                if (MoveMoveablePoint(unmoveableObjects, moveableObjects, nextPos, direction))
-                {
-                    return MoveCurrent();
-                }
-                else
-                {
-                    return false;
-                }
+                return CanMoveMoveablePoint(unmoveableObject, moveableObjects, nextPos, move);
             }
-            else
-            {
-                return MoveCurrent();
-            }
-
-
-            bool MoveCurrent()
-            {
-                var currentMoveableObject = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(moveableObjectPos));
-                currentMoveableObject.Coordinate = nextPos;
-                Grid[nextPos.X][nextPos.Y] = currentMoveableObject.Value;
-                return true;
-            }
-
+            return true;
         }
+
+        protected virtual void MoveMoveablePoint(ValuePointCategory<char> moveableObjects, Point moveableObjectPos, Direction direction)
+        {
+            var nextPos = GetNextPos(moveableObjectPos, direction);
+            if (moveableObjects.ContainsPoint(nextPos))
+            {
+                MoveMoveablePoint(moveableObjects, nextPos, direction);
+            }
+            var currentToMove = moveableObjects.ValuePoints.First(p => p.Coordinate.Equals(moveableObjectPos));
+            MoveCurrent(currentToMove, nextPos);
+        }
+
+        protected bool MoveCurrent(ValuePoint<char> currentMoveableObject, Point nextPos)
+        {
+            var prevPos = currentMoveableObject.Coordinate;
+            currentMoveableObject.Coordinate = nextPos;
+            Grid[nextPos.X][nextPos.Y] = currentMoveableObject.Value;
+            Grid[prevPos.X][prevPos.Y] = '.';
+            return true;
+        }
+
 
         private void MoveWorkerToNewPos(ValuePointCategory<char> workerValuePoints, Point nextPos)
         {
@@ -182,29 +246,33 @@ namespace aoc_2024.Solutions
             Grid[prevPos.X][prevPos.Y] = '.';
         }
 
-        private static Point GetNextPos(Point coordinate, Direction move)
+        protected static Point GetNextPos(Point coordinate, Direction move)
         {
             return move switch
             {
-                Direction.Left => new Point(coordinate.X - 1, coordinate.Y),
-                Direction.Right => new Point(coordinate.X + 1, coordinate.Y),
-                Direction.Up => new Point(coordinate.X, coordinate.Y + 1),
-                Direction.Down => new Point(coordinate.X, coordinate.Y - 1),
+                Direction.Left => coordinate.NewPointFromVector(-1, 0),
+                Direction.Right => coordinate.NewPointFromVector(1, 0),
+                Direction.Up => coordinate.NewPointFromVector(0, 1),
+                Direction.Down => coordinate.NewPointFromVector(0, -1),
                 _ => throw new NotImplementedException(),
             };
         }
 
         protected override List<ValuePointCategory<char>> GetValuePointCharCategoriesInternal()
         {
-            return [new ValuePointCategory<char>(UnmoveableCategoryName, unmoveableObstacles), new ValuePointCategory<char>(MoveableCategoryName, moveableObstacles),
+            return [new ValuePointCategory<char>(UnmoveableCategoryName, unmoveableObstacles), new ValuePointCategory<char>(MoveableCategoryName, MoveableObstacles),
             new ValuePointCategory<char>(WorkerCategoryName, workerChar)];
         }
 
-        internal int CalculateCheckSum()
+        public int CalculateCheckSum()
         {
-            var points = GetValuePointCategoryByName(MoveableCategoryName).ValuePoints;
-            //points = points.OrderByDescending(p => p.Coordinate.Y).ThenBy(p => p.Coordinate.X).ToList();
+            var points = GetPointsForChecksum();
             return points.Sum(p => p.Coordinate.X + ((Grid.Length - 1 - p.Coordinate.Y) * 100));
+        }
+
+        protected virtual List<ValuePoint<char>> GetPointsForChecksum()
+        {
+            return GetValuePointCategoryByName(MoveableCategoryName).ValuePoints;
         }
     }
 }

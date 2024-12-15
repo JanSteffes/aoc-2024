@@ -46,7 +46,8 @@ namespace aoc_2024.Solutions.Helper
         {
             for (var y = Grid.Length - 1; y >= 0; y--)
             {
-                for (var x = 0; x < Grid.Length; x++)
+                var currentRowLength = Grid[y].Length;
+                for (var x = 0; x < currentRowLength; x++)
                 {
                     var currentPoint = new Point(x, y);
                     var prevColor = Console.ForegroundColor;
@@ -129,6 +130,11 @@ namespace aoc_2024.Solutions.Helper
         {
             ValuePoints.Add(value);
         }
+
+        public T GetValueByPoint(Point moveableObjectPos)
+        {
+            return ValuePoints.First(v => v.EqualsCoordinate(moveableObjectPos)).Value;
+        }
     }
 
     internal class ValuePoint<T>
@@ -153,20 +159,5 @@ namespace aoc_2024.Solutions.Helper
             return $"X: {Coordinate.X}/Y: {Coordinate.Y}: {Value}";
         }
 
-    }
-
-    internal class ValuePoint2<T> : ValuePoint<T>
-    {
-        public Point Coordinate2 { get; set; }
-
-        public ValuePoint2(T value, Point coordinate1, Point coordinate2) : base(value, coordinate1)
-        {
-            Coordinate2 = coordinate2;
-        }
-
-        public override bool EqualsCoordinate(Point point)
-        {
-            return base.EqualsCoordinate(point) || Coordinate2.Equals(point);
-        }
     }
 }
