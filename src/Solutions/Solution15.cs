@@ -28,6 +28,31 @@ namespace aoc_2024.Solutions
             return checkSum.ToString();
         }
 
+        public string RunPartB(string inputData)
+        {
+            ParseInputToMap(inputData, out List<string> mapLines, out List<string> moveLines);
+
+            var map = new WarehouseMap(string.Join(Environment.NewLine, mapLines));
+
+            PrintColoredMap(map);
+
+            var moveSets = ParseDirections(string.Join(string.Empty, moveLines));
+            foreach (var move in moveSets)
+            {
+                map.TryMoveWorker(move);
+                PrintColoredMap(map);
+            }
+
+            var checkSum = map.CalculateCheckSum();
+
+            return checkSum.ToString();
+        }
+
+        private List<Direction> ParseDirections(string moveset)
+        {
+            return moveset.Select(c => (Direction)Enum.ToObject(typeof(Direction), c)).ToList();
+        }
+
         private static void ParseInputToMap(string inputData, out List<string> mapLines, out List<string> moveLines)
         {
             var lines = ParseUtils.ParseIntoLines(inputData);
@@ -45,14 +70,12 @@ namespace aoc_2024.Solutions
                 }
             }
         }
-
         private void PrintColoredMap(MapBase map)
         {
             Thread.Sleep(500);
             var colorsForCategories = GetColorsForPointsInCategories(map.GetValuePointCategories());
             map.PrintMap(colorsForCategories);
         }
-
         private Dictionary<Point, ConsoleColor> GetColorsForPointsInCategories(List<ValuePointCategory<char>> list)
         {
             var resultDict = new Dictionary<Point, ConsoleColor>();
@@ -72,19 +95,6 @@ namespace aoc_2024.Solutions
             }
             return resultDict;
         }
-
-        public string RunPartB(string inputData)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        private List<Direction> ParseDirections(string moveset)
-        {
-            return moveset.Select(c => (Direction)Enum.ToObject(typeof(Direction), c)).ToList();
-        }
-
-
     }
 
 

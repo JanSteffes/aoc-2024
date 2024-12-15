@@ -31,7 +31,7 @@ namespace aoc_2024.Solutions.Helper
                 for (int column = 0; column < length; column++)
                 {
                     var charToSet = lines[length - 1 - column][row];
-                    var category = ValuePointCategories.FirstOrDefault(v => v.ContainsChar(charToSet));
+                    var category = ValuePointCategories.FirstOrDefault(v => v.ContainsValue(charToSet));
                     if (category != default)
                     {
                         category.Add(new ValuePoint<char>(charToSet, new Point(row, column)));
@@ -71,7 +71,7 @@ namespace aoc_2024.Solutions.Helper
 
         public void AddValuePoint(ValuePoint<char> valuePoint)
         {
-            var categoryToAdd = ValuePointCategories.FirstOrDefault(v => v.ContainsChar(valuePoint.Value));
+            var categoryToAdd = ValuePointCategories.FirstOrDefault(v => v.ContainsValue(valuePoint.Value));
             if (categoryToAdd != default)
             {
                 categoryToAdd.Add(valuePoint);
@@ -104,25 +104,25 @@ namespace aoc_2024.Solutions.Helper
     {
         public string Name { get; set; }
 
-        public char[] CategoryValues { get; set; }
+        public T[] CategoryValues { get; set; }
 
         public List<ValuePoint<T>> ValuePoints { get; set; }
 
-        public ValuePointCategory(string name, char[] categoryValues)
+        public ValuePointCategory(string name, T[] categoryValues)
         {
             Name = name;
             CategoryValues = categoryValues;
             ValuePoints = [];
         }
 
-        public bool ContainsChar(char character)
+        public bool ContainsValue(T valueToContains)
         {
-            return CategoryValues.Contains(character);
+            return CategoryValues.Contains(valueToContains);
         }
 
         public bool ContainsPoint(Point point)
         {
-            return ValuePoints.Any(v => v.Coordinate.Equals(point));
+            return ValuePoints.Any(v => v.EqualsCoordinate(point));
         }
 
         public void Add(ValuePoint<T> value)
@@ -143,10 +143,30 @@ namespace aoc_2024.Solutions.Helper
             Coordinate = coordinate;
         }
 
+        public virtual bool EqualsCoordinate(Point point)
+        {
+            return Coordinate.Equals(point);
+        }
+
         public override string ToString()
         {
             return $"X: {Coordinate.X}/Y: {Coordinate.Y}: {Value}";
         }
 
+    }
+
+    internal class ValuePoint2<T> : ValuePoint<T>
+    {
+        public Point Coordinate2 { get; set; }
+
+        public ValuePoint2(T value, Point coordinate1, Point coordinate2) : base(value, coordinate1)
+        {
+            Coordinate2 = coordinate2;
+        }
+
+        public override bool EqualsCoordinate(Point point)
+        {
+            return base.EqualsCoordinate(point) || Coordinate2.Equals(point);
+        }
     }
 }
