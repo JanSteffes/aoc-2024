@@ -47,23 +47,86 @@ namespace aoc_2024.Solutions.Helper
             return coordinateSystem;
         }
 
-        public void PrintMap(Dictionary<Point, ConsoleColor>? colorsForPoints = null)
+        public void PrintColoredMap(IDictionary<Point, ConsoleColor>? customColors = default)
+        {
+            Thread.Sleep(500);
+            var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [ConsoleColor.Green, ConsoleColor.Red, ConsoleColor.Blue, ConsoleColor.Magenta, ConsoleColor.Yellow, ConsoleColor.Cyan, ConsoleColor.Gray]);
+            PrintMap(colorsForCategories, customColors);
+        }
+
+
+        public void PrintColoredMapToFile(string filePath, IDictionary<Point, Color>? customColors = default)
+        {
+            var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Magenta, Color.Yellow, Color.Cyan, Color.LightGray]);
+            PrintToImage(filePath, colorsForCategories, customColors ?? new Dictionary<Point, Color>());
+        }
+
+        void PrintToImage(string filePath, IDictionary<Point, Color> colorValues, IDictionary<Point, Color> customColors)
+        {
+            var bitmap = new Bitmap(MaxX, MaxY);
+            for (int y = 0; y < MaxY; y++)
+            {
+                for (int x = 0; x < MaxX; x++)
+                {
+                    var current = new Point(x, y);
+                    if (!customColors.TryGetValue(current, out var color))
+                    {
+                        colorValues.TryGetValue(current, out color);
+                    }
+                    bitmap.SetPixel(x, y, color);
+
+                }
+            }
+            var newBitmap = new Bitmap(bitmap, bitmap.Size.Width * 1, bitmap.Size.Height * 1);
+            //Task.Factory.StartNew(() =>
+            //{
+            newBitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+            newBitmap.Dispose();
+            bitmap.Dispose();
+            //});
+        }
+
+        private Dictionary<Point, T> GetConsoleColorsForPointsInCategories<T>(List<ValuePointCategory<char>> list, T[] valuesToTakeFrom)
+        {
+            var resultDict = new Dictionary<Point, T>();
+
+            var colorIndex = 0;
+            foreach (var category in list)
+            {
+                if (valuesToTakeFrom.Length == colorIndex)
+                {
+                    colorIndex = 0;
+                }
+                var color = valuesToTakeFrom[colorIndex++];
+                foreach (var point in category.ValuePoints)
+                {
+                    resultDict.Add(point.Coordinate, color);
+                }
+            }
+            return resultDict;
+        }
+
+        public void PrintMap(Dictionary<Point, ConsoleColor>? colorsForPoints = null, IDictionary<Point, ConsoleColor>? customColors = null)
         {
             for (var y = MaxY - 1; y >= 0; y--)
             {
                 for (var x = 0; x < MaxX; x++)
                 {
-                    PrintColoredPoint(colorsForPoints, x, y);
+                    PrintColoredPoint(colorsForPoints, customColors, x, y);
                 }
                 Console.WriteLine();
             }
         }
 
-        private void PrintColoredPoint(Dictionary<Point, ConsoleColor>? colorsForPoints, int x, int y)
+        private void PrintColoredPoint(Dictionary<Point, ConsoleColor>? colorsForPoints, IDictionary<Point, ConsoleColor>? customColors, int x, int y)
         {
             var currentPoint = new Point(x, y);
             var prevColor = Console.ForegroundColor;
-            if (colorsForPoints?.TryGetValue(currentPoint, out ConsoleColor color) ?? false)
+            if (customColors?.TryGetValue(currentPoint, out ConsoleColor color) ?? false)
+            {
+                Console.ForegroundColor = color;
+            }
+            else if (colorsForPoints?.TryGetValue(currentPoint, out color) ?? false)
             {
                 Console.ForegroundColor = color;
             }
