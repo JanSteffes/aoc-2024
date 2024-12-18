@@ -57,7 +57,7 @@ namespace aoc_2024.Solutions.Helper
 
         public void PrintColoredMapToFile(string filePath, IDictionary<Point, Color>? customColors = default)
         {
-            var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Magenta, Color.Yellow, Color.Cyan, Color.LightGray]);
+            var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Yellow, Color.Cyan, Color.Magenta, Color.LightGray]);
             PrintToImage(filePath, colorsForCategories, customColors ?? new Dictionary<Point, Color>());
         }
 
@@ -77,7 +77,7 @@ namespace aoc_2024.Solutions.Helper
 
                 }
             }
-            var newBitmap = new Bitmap(bitmap, bitmap.Size.Width * 1, bitmap.Size.Height * 1);
+            var newBitmap = new Bitmap(bitmap, bitmap.Size.Width * 4, bitmap.Size.Height * 4);
             //Task.Factory.StartNew(() =>
             //{
             newBitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
@@ -204,9 +204,22 @@ namespace aoc_2024.Solutions.Helper
             ValuePoints.Add(value);
         }
 
-        public T GetValueByPoint(Point moveableObjectPos)
+        public T GetValueByPoint(Point point)
         {
-            return ValuePoints.First(v => v.EqualsCoordinate(moveableObjectPos)).Value;
+            return GetValuePointByPoint(point).Value;
+        }
+
+        internal ValuePoint<T> GetValuePointByPoint(Point point)
+        {
+            return ValuePoints.First(v => v.EqualsCoordinate(point));
+        }
+
+        internal void Remove(params ValuePoint<T>[] valuePointsToRemove)
+        {
+            foreach (var valuePointToRemove in valuePointsToRemove)
+            {
+                ValuePoints.Remove(valuePointToRemove);
+            }
         }
     }
 

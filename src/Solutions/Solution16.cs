@@ -1,5 +1,7 @@
 using aoc_2024.Interfaces;
 using aoc_2024.Solutions.Helper;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Drawing;
 
 namespace aoc_2024.Solutions
@@ -10,10 +12,9 @@ namespace aoc_2024.Solutions
         {
             var isTest = false;
             var maze = new MazeMap(inputData);
-            if (isTest)
-            {
-                maze.PrintColoredMap();
-            }
+            TestPrintColoredMap(isTest, maze);
+            maze.EliminateDeadEnds();
+            TestPrintColoredMap(isTest, maze);
             var pathScore = maze.CalculateLowestPathScore(isTest);
             return pathScore.ToString();
         }
@@ -21,6 +22,14 @@ namespace aoc_2024.Solutions
         public string RunPartB(string inputData)
         {
             throw new NotImplementedException();
+        }
+
+        private void TestPrintColoredMap(bool isTest, MazeMap maze)
+        {
+            if (isTest)
+            {
+                maze.PrintColoredMap();
+            }
         }
     }
 
@@ -39,16 +48,21 @@ namespace aoc_2024.Solutions
         {
         }
 
+        private const string Obstacles = "Obstalces";
+        private const string Target = "EndPosition";
+        private const string StartPosition = "StartPosition";
+        private const string FreeFields = "FreeFields";
+
         protected override List<ValuePointCategory<char>> GetValuePointCharCategoriesInternal()
         {
-            return [new ValuePointCategory<char>("Obstalces", _obstacleChars), new ValuePointCategory<char>("StartPosition", _startPositionChars),
-            new ValuePointCategory<char>("EndPosition", _endPositionChars), new ValuePointCategory<char>("FreeFields", _freeFieldChars)];
+            return [new ValuePointCategory<char>(Obstacles, _obstacleChars), new ValuePointCategory<char>(StartPosition, _startPositionChars),
+            new ValuePointCategory<char>(Target, _endPositionChars), new ValuePointCategory<char>(FreeFields, _freeFieldChars)];
         }
 
         public int CalculateLowestPathScore(bool isTest)
         {
             // get startPos
-            var startPos = GetValuePointCategoryByName("StartPosition").ValuePoints.First();
+            var startPos = GetValuePointCategoryByName(StartPosition).ValuePoints.First();
             var mazePaths = GetPathScoreBfs(startPos.Coordinate, new MazePath([]));
             var validMazePaths = mazePaths.Where(mp => mp.IsValidPath()).ToList();
 
@@ -97,9 +111,9 @@ namespace aoc_2024.Solutions
                 return [];
             }
             currentPath.AddPoint(currentPos);
-            //var dir = currentPath.GetPoints().ToDictionary(d => d, d => Color.Yellow);
-            //Task.Factory.StartNew(() =>
-            //PrintColoredMapToFile(Path.Combine(imageSavePath, staticCount++ + ".png"), dir));
+            var dir = currentPath.GetPoints().ToDictionary(d => d, d => Color.Firebrick);
+            Task.Factory.StartNew(() =>
+            PrintColoredMapToFile(Path.Combine(imageSavePath, staticCount++ + "_way.png"), dir));
             // return paths for points around
             var pointsAround = currentPos.GetDirectPointsAround();
             var resultMazePaths = new List<MazePath>();
@@ -110,6 +124,114 @@ namespace aoc_2024.Solutions
             }
             return resultMazePaths;
         }
+
+        internal void EliminateDeadEnds()
+        {
+            // get all FreeFields
+            // get those who are sourounded by only 1 free field and else only obstacles
+            // and with those that are sourrounded by only two free fields
+            var run = 0;
+            var sum = new List<(int run, long msNeeded)>();
+            var sw = Stopwatch.StartNew();
+            while (GetFreeFieldsSourroundingFields(1) is { } freeFields && freeFields.Any()) // TODO also add obstacles -> search for circles. Obstaccle with only free fields around
+            {
+                var currentCount = freeFields[1].Count;
+                // make the first list obstacles
+                AddFreeFieldsToObstacles(freeFields);
+                sw.Stop();
+                run++;
+                Debug.WriteLine($"Finished run {run} with {currentCount} freeFields with only one other free field.");
+                sum.Add((run, sw.ElapsedMilliseconds));
+
+                Task.Factory.StartNew(() =>
+                PrintColoredMapToFile(Path.Combine(imageSavePath, staticCount++ + ".png")));
+
+                sw.Restart();
+            }
+            sw.Stop();
+            var max = sum.MaxBy(s => s.msNeeded);
+            var min = sum.MinBy(s => s.msNeeded);
+            var average = sum.Average(s => s.msNeeded);
+            Console.WriteLine($"Endet after {run} runs. Took max {max.msNeeded} ms at run {max.run}, min {min.msNeeded} ms at run {min.run} and average of {average} ms");
+            // check those with only two fields and make those that now have one of those as obstacles to obstacles
+            //AddPathFieldsToObstacles(pathFields);
+        }
+
+        private void AddFreeFieldsToObstacles(Dictionary<int, List<(ValuePoint<char> ValuePoint, List<ValuePoint<char>> SourroundingPoints)>> freeFields)
+        {
+            var containsObstalceFields = freeFields.TryGetValue(1, out var obstalceFields);
+            if (!containsObstalceFields || obstalceFields == null)
+            {
+                return;
+            }
+            var obstacles = GetValuePointCategoryByName(Obstacles);
+            var obstaclesToAdd = new ConcurrentBag<ValuePoint<char>>();
+            Parallel.ForEach(obstalceFields, entry =>
+            //foreach (var entry in obstalceFields!)
+            {
+                var currentValuePoint = entry.ValuePoint;
+                obstaclesToAdd.Add(currentValuePoint);
+                Grid[currentValuePoint.Coordinate.X][currentValuePoint.Coordinate.Y] = _obstacleChars.First();
+            }
+            );
+            foreach (var obstalceToAdd in obstaclesToAdd)
+            {
+                obstacles.Add(obstalceToAdd);
+            }
+            var freeFieldsCategory = GetValuePointCategoryByName(FreeFields);
+            freeFieldsCategory.Remove(obstalceFields.Select(o => o.ValuePoint).ToArray());
+            freeFields.Remove(1);
+        }
+        private Dictionary<int, List<(ValuePoint<char> ValuePoint, List<ValuePoint<char>> SourroundingPoints)>> GetFreeFieldsSourroundingFields(params int[] countsToCareFor)
+        {
+            var freeFields = GetValuePointCategoryByName(FreeFields);
+            var startFields = GetValuePointCategoryByName(StartPosition);
+            var endFields = GetValuePointCategoryByName(Target);
+            var freeFieldsSourrouncedByFields = new ConcurrentDictionary<int, List<(ValuePoint<char> ValuePoint, List<ValuePoint<char>>)>>();
+
+            Parallel.ForEach(freeFields.ValuePoints, field =>
+            {
+                //foreach (var field in freeFields.ValuePoints)
+                //{
+                var sourroundingFields = field.Coordinate.GetDirectPointsAround().ToList();
+                if (sourroundingFields.Any(sf => startFields.ContainsPoint(sf) || endFields.ContainsPoint(sf)))
+                {
+                    return;
+                }
+                sourroundingFields = sourroundingFields.Where(freeFields.ContainsPoint).ToList();
+                AddToDict(field, sourroundingFields, freeFields, countsToCareFor);
+                //}
+            });
+            return freeFieldsSourrouncedByFields.ToDictionary();
+
+
+            void AddToDict(ValuePoint<char> fieldToAdd, List<Point> sourroundingFields, ValuePointCategory<char> freeFields, int[] countsToCareFor)
+            {
+                var sourroundingFieldValuePoints = sourroundingFields.Select(freeFields.GetValuePointByPoint).ToList();
+                if (!countsToCareFor.Contains(sourroundingFieldValuePoints.Count))
+                {
+                    return;
+                }
+                var tupleToAdd = (fieldToAdd, sourroundingFieldValuePoints);
+                if (freeFieldsSourrouncedByFields.TryGetValue(sourroundingFields.Count, out var listToAddTo))
+                {
+                    listToAddTo.Add(tupleToAdd);
+                }
+                else
+                {
+                    freeFieldsSourrouncedByFields.TryAdd(sourroundingFields.Count, [tupleToAdd]);
+                }
+            }
+        }
+    }
+
+    class PathField<T>
+    {
+        public ValuePoint<T> Field { get; set; }
+
+        public ValuePoint<T> OtherField { get; set; }
+
+        public ValuePoint<T> AnotherField { get; set; }
     }
 
     class MazePath
