@@ -1,5 +1,6 @@
 using aoc_2024.Interfaces;
 using aoc_2024.SolutionUtils;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -32,8 +33,13 @@ namespace aoc_2024.Solutions
             //var number = (long)BigInteger.Pow(8, length - 1);
 
             //number = long.Parse(number.ToString().Substring(0, number.ToString().Length - 2) + "00");
-            var number = 0;
-            var lastResult = "";
+            //var number = 226000000000000;
+            //var originalNumber = number / 10;
+            //var lastResult = "";
+            var minValue = 233776540702820;
+            //var maxValue = minValue + 50000;//long.Parse(string.Join("", Enumerable.Repeat(9, minValue.Digits_String())));
+            var runs = 1;
+            var random = new Random();
             do
             {
                 // unterchiede erst bei +64
@@ -41,21 +47,66 @@ namespace aoc_2024.Solutions
                 // wenn also hinten an Stelle x eine 1 steht, muss davor das feld 7 mal gewesen sein
                 // kann man das rückwärts mit ^8 berechnen?
                 // GILT NUR FÜRST TESTPROGRAMM B
-                var program = new Program(inputData);
-                program.A = number;
-                program.Run();
-                var result = program.Output;
-                if (result == expectedResult)
+                var outputs = new ConcurrentBag<string>();
+                var numbers = new long[100000];
+                for (var i = 0; i < numbers.Length; i++)
                 {
-                    notFound = false;
+                    numbers[i] = minValue + i;
                 }
-                if (result != lastResult)
+                minValue = numbers.Last();
+
+                // für input: muss vermutlich zwischen
+                // 220000000000000 - 6201327566340000 - [6,6,6,2,1,6,3,7,1,4,1,6,7,4,5,0] und 
+                // 230000000000000 - 6422741423060000 - [6,6,6,0,6,5,6,5,4,7,3,0,5,5,2,0] liegen
+
+                /*
+                 * Letzten 3 Ziffern bei octa zahl:
+277
+240
+155
+Ergeben erste 3 Ziffern: [2,4,1
+
+
+
+
+
+
+Regex für 3,4,1 irgendwo:
+
+(?:\d,){7}(3,4,1),(?:\d,){5}\d
+
+                 */
+
+                Parallel.ForEach(numbers, number =>
                 {
-                    lastResult = result;
-                    Debug.WriteLine($"{number} - {Convert.ToString(number, 8)} - [{result}]");
-                    Thread.Sleep(200);
+                    //var number = random.NextInt64(minValue, maxValue);
+                    var program = new Program(inputData);
+                    program.A = number;
+                    program.Run();
+                    var result = program.Output;
+                    var resultString = $"{number} - {Convert.ToString(number, 8)} - [{result}]";
+                    if (result.Length > expectedResult.Length)
+                    {
+                        //maxValue = number;
+                        resultString += $" ##### {result.Length - expectedResult.Length} too big";
+                    }
+                    outputs.Add(resultString);
+                });
+                var newMaxValueOutputs = outputs.Where(o => o.Contains("####")).ToList();
+                //if (newMaxValueOutputs.Any())
+                //{
+                //    var newMaxValue = newMaxValueOutputs.Select(o => long.Parse(o.Split("-").First().Trim())).OrderBy(o => o).FirstOrDefault();
+                //    if (newMaxValue != default)
+                //    {
+                //        maxValue = newMaxValue;
+                //    }
+                //}
+                var validOutputs = outputs.Except(newMaxValueOutputs).ToList();
+                foreach (var output in validOutputs)
+                {
+                    Debug.WriteLine(output);
                 }
-                number += 64;
+
             } while (notFound);
             //return results.Min().ToString();
             return string.Empty;

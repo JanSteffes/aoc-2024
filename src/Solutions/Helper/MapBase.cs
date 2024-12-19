@@ -55,10 +55,13 @@ namespace aoc_2024.Solutions.Helper
         }
 
 
-        public void PrintColoredMapToFile(string filePath, IDictionary<Point, Color>? customColors = default)
+        public void PrintColoredMapToFileInBackground(string filePath, IDictionary<Point, Color>? customColors = default)
         {
-            var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Yellow, Color.Cyan, Color.Magenta, Color.LightGray]);
-            PrintToImage(filePath, colorsForCategories, customColors ?? new Dictionary<Point, Color>());
+            Task.Factory.StartNew(() =>
+            {
+                var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Yellow, Color.Cyan, Color.Magenta, Color.LightGray]);
+                PrintToImage(filePath, colorsForCategories, customColors ?? new Dictionary<Point, Color>());
+            });
         }
 
         void PrintToImage(string filePath, IDictionary<Point, Color> colorValues, IDictionary<Point, Color> customColors)

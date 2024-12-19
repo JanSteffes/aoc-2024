@@ -15,7 +15,7 @@ namespace aoc_2024.Solutions
             TestPrintColoredMap(isTest, maze);
             maze.EliminateDeadEnds();
             TestPrintColoredMap(isTest, maze);
-            var pathScore = maze.CalculateLowestPathScore(isTest);
+            var pathScore = maze.CalculateLowestPathScore(isTest, 1000);
             return pathScore.ToString();
         }
 
@@ -59,7 +59,7 @@ namespace aoc_2024.Solutions
             new ValuePointCategory<char>(Target, _endPositionChars), new ValuePointCategory<char>(FreeFields, _freeFieldChars)];
         }
 
-        public int CalculateLowestPathScore(bool isTest)
+        public int CalculateLowestPathScore(bool isTest, int additionalScore)
         {
             // get startPos
             var startPos = GetValuePointCategoryByName(StartPosition).ValuePoints.First();
@@ -74,12 +74,12 @@ namespace aoc_2024.Solutions
                     Console.WriteLine();
                     Console.WriteLine();
                     Console.WriteLine();
-                    var score = validMazePath.GetScore();
+                    var score = validMazePath.GetScore(additionalScore);
                     Console.WriteLine($"{++count}/{validMazePaths.Count} - Score {score}");
                     PrintColoredMap(validMazePath.GetPoints().ToDictionary(p => p, p => ConsoleColor.Yellow));
                 }
             }
-            var validMazePathsScores = validMazePaths.Select(mp => mp.GetScore()).ToList();
+            var validMazePathsScores = validMazePaths.Select(mp => mp.GetScore(additionalScore)).ToList();
             return validMazePathsScores.Min();
         }
 
@@ -87,8 +87,12 @@ namespace aoc_2024.Solutions
         static int staticCount = 0;
         const string imageSavePath = "C:\\Users\\JanSt\\OneDrive\\Dokumente\\AoC2024\\16";
 
-        private List<MazePath> GetPathScoreBfs(Point currentPos, MazePath currentPath)
+        protected List<MazePath> GetPathScoreBfs(Point currentPos, MazePath currentPath)
         {
+            if (!IsInMap(currentPos))
+            {
+                return [];
+            }
             var currentPosValue = GetValueAtPos(currentPos);
             // check if End
             if (_endPositionChars.Contains(currentPosValue))
@@ -112,8 +116,7 @@ namespace aoc_2024.Solutions
             }
             currentPath.AddPoint(currentPos);
             var dir = currentPath.GetPoints().ToDictionary(d => d, d => Color.Firebrick);
-            Task.Factory.StartNew(() =>
-            PrintColoredMapToFile(Path.Combine(imageSavePath, staticCount++ + "_way.png"), dir));
+            //PrintColoredMapToFileInBackground(Path.Combine(imageSavePath, staticCount++ + "_way.png"), dir);
             // return paths for points around
             var pointsAround = currentPos.GetDirectPointsAround();
             var resultMazePaths = new List<MazePath>();
@@ -143,8 +146,7 @@ namespace aoc_2024.Solutions
                 Debug.WriteLine($"Finished run {run} with {currentCount} freeFields with only one other free field.");
                 sum.Add((run, sw.ElapsedMilliseconds));
 
-                Task.Factory.StartNew(() =>
-                PrintColoredMapToFile(Path.Combine(imageSavePath, staticCount++ + ".png")));
+                //PrintColoredMapToFileInBackground(Path.Combine(imageSavePath, staticCount++ + ".png"));
 
                 sw.Restart();
             }
@@ -251,18 +253,18 @@ namespace aoc_2024.Solutions
             return _isValidPath;
         }
 
-        public int GetScore()
+        public int GetScore(int additionalScoreIfMoved = 0)
         {
-            var score = GetSecondPointScore(VisitedPoints.First(), VisitedPoints[1]);
+            var score = GetSecondPointScore(VisitedPoints.First(), VisitedPoints[1], additionalScoreIfMoved);
             for (var pointIndex = 2; pointIndex < VisitedPoints.Count; pointIndex++)
             {
-                var currentPointScore = GetPointScore(VisitedPoints[pointIndex], VisitedPoints[pointIndex - 2]);
+                var currentPointScore = GetPointScore(VisitedPoints[pointIndex], VisitedPoints[pointIndex - 2], additionalScoreIfMoved);
                 score += currentPointScore;
             }
             return score;
         }
 
-        private static int GetSecondPointScore(Point startPoint, Point secondPoint)
+        private static int GetSecondPointScore(Point startPoint, Point secondPoint, int additionalScoreIfMoved)
         {
             if (secondPoint.X == startPoint.X + 1 && secondPoint.Y == startPoint.Y)
             {
@@ -272,17 +274,17 @@ namespace aoc_2024.Solutions
             if (secondPoint.X == startPoint.X - 1 && secondPoint.Y == startPoint.Y)
             {
                 // west
-                return 2001;
+                return 1 + (2 * additionalScoreIfMoved);
             }
             // north and south
-            return 1001;
+            return 1 + additionalScoreIfMoved;
         }
 
-        private static int GetPointScore(Point currentPoint, Point prevPrevPoint)
+        private static int GetPointScore(Point currentPoint, Point prevPrevPoint, int additionalScoreIfMoved)
         {
             if (prevPrevPoint.X != currentPoint.X && prevPrevPoint.Y != currentPoint.Y)
             {
-                return 1001;
+                return 1 + additionalScoreIfMoved;
             }
             return 1;
         }
