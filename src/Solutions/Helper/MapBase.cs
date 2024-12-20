@@ -59,7 +59,7 @@ namespace aoc_2024.Solutions.Helper
         {
             Task.Factory.StartNew(() =>
             {
-                var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Yellow, Color.Cyan, Color.Magenta, Color.LightGray]);
+                var colorsForCategories = GetConsoleColorsForPointsInCategories(GetValuePointCategories(), [Color.Green, Color.Red, Color.Blue, Color.Cyan, Color.Yellow, Color.Magenta, Color.LightGray]);
                 PrintToImage(filePath, colorsForCategories, customColors ?? new Dictionary<Point, Color>());
             });
         }
@@ -80,7 +80,7 @@ namespace aoc_2024.Solutions.Helper
 
                 }
             }
-            var newBitmap = new Bitmap(bitmap, bitmap.Size.Width * 4, bitmap.Size.Height * 4);
+            var newBitmap = new Bitmap(bitmap, bitmap.Size.Width * 10, bitmap.Size.Height * 10);
             //Task.Factory.StartNew(() =>
             //{
             newBitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
@@ -103,6 +103,10 @@ namespace aoc_2024.Solutions.Helper
                 var color = valuesToTakeFrom[colorIndex++];
                 foreach (var point in category.ValuePoints)
                 {
+                    if (resultDict.ContainsKey(point.Coordinate))
+                    {
+                        continue;
+                    }
                     resultDict.Add(point.Coordinate, color);
                 }
             }
@@ -226,11 +230,23 @@ namespace aoc_2024.Solutions.Helper
         }
     }
 
+    public enum NodeState { Untested, Open, Closed }
+
     internal class ValuePoint<T>
     {
         public T Value { get; set; }
 
         public Point Coordinate { get; set; }
+
+        public int G { get; set; } = 1;
+
+        public int H { get; set; }
+
+        public int F { get { return G + H; } }
+
+        public NodeState State { get; set; } = NodeState.Untested;
+
+        public ValuePoint<T>? ParentNode { get; set; }
 
         public ValuePoint(T value, Point coordinate)
         {
@@ -248,5 +264,16 @@ namespace aoc_2024.Solutions.Helper
             return $"X: {Coordinate.X}/Y: {Coordinate.Y}: {Value}";
         }
 
+        internal int GetTraversalCost()
+        {
+            return 1;
+        }
+
+        internal List<ValuePoint<T>> GetPath()
+        {
+            var parentsPath = ParentNode?.GetPath() ?? [];
+            parentsPath.Add(this);
+            return parentsPath;
+        }
     }
 }

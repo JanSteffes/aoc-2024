@@ -3,7 +3,7 @@ TestNumber=
 AnswerA=
 22
 AnswerB=
-[Empty]
+6,1
 Input=
 5,4
 4,2
@@ -30,16 +30,5 @@ Input=
 0,5
 1,6
 2,0
-
-================================
-
-TestNumber=
-2
-AnswerA=
-[Empty]
-AnswerB=
-[Empty]
-Input=
-[Empty]
 
 ================================

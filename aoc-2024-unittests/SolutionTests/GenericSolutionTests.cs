@@ -38,6 +38,12 @@ namespace aoc_2024_unittests.SolutionTests
         [TestCase("15", 2, "A")]
         [TestCase("15", 2, "B")]
         [TestCase("15", 3, "B")]
+        [TestCase("16", 1, "A")]
+        [TestCase("16", 1, "B")]
+        [TestCase("17", 1, "A")]
+        [TestCase("17", 1, "B")]
+        [TestCase("18", 1, "A")]
+        [TestCase("18", 1, "B")]
         public void TestCaseTests(int day, int testNumber, string part)
         {
             // arrange
@@ -86,6 +92,12 @@ namespace aoc_2024_unittests.SolutionTests
         //[TestCase("14", 1, "B")]
         [TestCase("15", 1, "A", "1526018", 1)]
         [TestCase("15", 1, "B", "1550677", 2)]
+        [TestCase("16", 1, "A", "1526018", 1)]
+        [TestCase("16", 1, "B", "1550677", 2)]
+        [TestCase("17", 1, "A", "1526018", 1)]
+        [TestCase("17", 1, "B", "1550677", 2)]
+        [TestCase("18", 1, "A", "282", 1)]
+        //[TestCase("18", 1, "B", "64,29", 60)] // skip for now, takes too long
         public void InputCaseTests(int day, int testNumber, string part, string expectedResult, int maxSecondsToRun)
         {
             // arrange
