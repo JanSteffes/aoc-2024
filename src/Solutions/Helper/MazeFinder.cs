@@ -11,6 +11,11 @@ namespace aoc_2024.Solutions.Helper
             Maze = map;
         }
 
+        /// <summary>
+        /// Thanks https://de.wikipedia.org/wiki/A*-Algorithmus and https://web.archive.org/web/20170505034417/http://blog.two-cats.com/2014/06/a-star-example/
+        /// </summary>
+        /// <param name="printMapToConsole"></param>
+        /// <returns></returns>
         public List<ValuePoint<char>> GetPathAStar(bool printMapToConsole)
         {
             var categories = Maze.GetValuePointCategories();
