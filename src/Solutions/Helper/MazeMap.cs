@@ -14,7 +14,7 @@ namespace aoc_2024.Solutions.Helper
 
         private readonly char[] _freeFieldChars = ['.'];
 
-        public MazeMap(string inputData) : base(inputData)
+        public MazeMap(string inputData, bool notReversedGrid = false) : base(inputData, notReversedGrid)
         {
         }
 
@@ -194,6 +194,16 @@ namespace aoc_2024.Solutions.Helper
                     freeFieldsSourrouncedByFields.TryAdd(sourroundingFields.Count, [tupleToAdd]);
                 }
             }
+        }
+
+        internal void ConvertField(Point pointToConvert, string categoryToConvertFrom, string categoryToConvertTo)
+        {
+            var fromCat = ValuePointCategories.First(vp => vp.Name.Contains(categoryToConvertFrom, StringComparison.OrdinalIgnoreCase));
+            var toCat = ValuePointCategories.First(vp => vp.Name.Contains(categoryToConvertTo, StringComparison.OrdinalIgnoreCase));
+            var valuePointToConvert = fromCat.GetValuePointByPoint(pointToConvert);
+            fromCat.Remove(valuePointToConvert);
+            toCat.Add(valuePointToConvert);
+            Grid[pointToConvert.X][pointToConvert.Y] = toCat.CategoryValues.First();
         }
     }
 }

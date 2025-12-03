@@ -13,17 +13,22 @@ namespace aoc_2024.Solutions.Helper
 
         protected List<ValuePointCategory<char>> ValuePointCategories { get; set; }
 
-        public MapBase(string inputData)
+        public MapBase(string inputData, bool notReversed = false)
         {
             ValuePointCategories = GetValuePointCharCategoriesInternal();
-            Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData);
+            Grid = BuildCoordinateSystemFromStringAndFillValuePoints(inputData, notReversed);
             MaxX = Grid.Length;
             MaxY = Grid[0].Length;
         }
 
-        private char[][] BuildCoordinateSystemFromStringAndFillValuePoints(string inputData)
+        private char[][] BuildCoordinateSystemFromStringAndFillValuePoints(string inputData, bool notReversed)
         {
-            var lines = ParseUtils.ParseIntoLines(inputData).Reverse().ToArray();
+            var linesArray = ParseUtils.ParseIntoLines(inputData).AsEnumerable();
+            if (!notReversed)
+            {
+                linesArray = linesArray.Reverse();
+            }
+            var lines = linesArray.ToArray();
             var height = lines.Length;
             var coordinateSystem = new char[lines.First().Length][];
             for (int y = 0; y < height; y++)
@@ -115,7 +120,8 @@ namespace aoc_2024.Solutions.Helper
 
         public void PrintMap(Dictionary<Point, ConsoleColor>? colorsForPoints = null, IDictionary<Point, ConsoleColor>? customColors = null)
         {
-            for (var y = MaxY - 1; y >= 0; y--)
+            //for (var y = MaxY - 1; y >= 0; y--)
+            for (var y = 0; y < MaxY; y++)
             {
                 for (var x = 0; x < MaxX; x++)
                 {

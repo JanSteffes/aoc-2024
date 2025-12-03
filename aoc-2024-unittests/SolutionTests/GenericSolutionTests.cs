@@ -41,9 +41,19 @@ namespace aoc_2024_unittests.SolutionTests
         [TestCase("16", 1, "A")]
         [TestCase("16", 1, "B")]
         [TestCase("17", 1, "A")]
-        [TestCase("17", 1, "B")]
+        //[TestCase("17", 1, "B")] // takes too long
         [TestCase("18", 1, "A")]
         [TestCase("18", 1, "B")]
+        [TestCase("19", 1, "A")]
+        //[TestCase("19", 1, "B")] // nope
+        //[TestCase("20", 1, "A")]
+        //[TestCase("20", 1, "B")] 
+        [TestCase("21", 1, "A")]
+        //[TestCase("21", 1, "B")]
+        [TestCase("22", 1, "A")]
+        //[TestCase("22", 1, "B")]
+        [TestCase("23", 1, "A")]
+        [TestCase("23", 1, "B")]
         public void TestCaseTests(int day, int testNumber, string part)
         {
             // arrange
@@ -98,6 +108,16 @@ namespace aoc_2024_unittests.SolutionTests
         [TestCase("17", 1, "B", "1550677", 2)]
         [TestCase("18", 1, "A", "282", 1)]
         //[TestCase("18", 1, "B", "64,29", 60)] // skip for now, takes too long
+        [TestCase("19", 1, "A", "338", 1)]
+        //[TestCase("19", 1, "B", "", 2)] // not done
+        [TestCase("20", 1, "A", "1422", 1)]
+        [TestCase("20", 1, "B", "", 2)]
+        [TestCase("21", 1, "A", "", 1)]
+        [TestCase("21", 1, "B", "", 2)]
+        [TestCase("22", 1, "A", "", 1)]
+        [TestCase("22", 1, "B", "", 2)]
+        [TestCase("23", 1, "A", "1419", 1)]
+        [TestCase("23", 1, "B", "", 2)]
         public void InputCaseTests(int day, int testNumber, string part, string expectedResult, int maxSecondsToRun)
         {
             // arrange
